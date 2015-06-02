@@ -1,0 +1,62 @@
+package cli
+
+import (
+	. "github.com/smartystreets/goconvey/convey"
+	"testing"
+)
+
+func TestDescribeCommand(t *testing.T) {
+	Convey("Description of Command", t, func() {
+		c := NewCommand("foo", "It does foo", func() {}).
+			SetDescription("It does really, really foo")
+
+		c.NewArgument("bar", "The bar", "", true, false).
+			NewArgument("baz", "The baz", "", false, true)
+
+		c.NewOption("boing", "b", "The boing!", "", true, false).
+			NewOption("zoing", "z", "The ZOING!", "", false, true)
+		c.Option("zoing").IsFlag()
+
+		s := DescribeCommand(c)
+		expect := `Command: <headline>foo<reset>
+<info>It does really, really foo<reset>
+
+<subline>Usage:<reset>
+	foo <bar> ([baz] ...) --boing|-b <val> ((--zoing|-z) ...)
+
+<subline>Arguments:<reset>
+	<info>bar<reset>  The bar (req)
+	<info>baz<reset>  The baz (mult)
+
+<subline>Options:<reset>
+	<info>--boing|-b <val><reset>  The boing! (req)
+	<info>--zoing|-z      <reset>  The ZOING! (mult)
+
+`
+		So(s, ShouldEqual, expect)
+	})
+}
+
+func TestDescriberCli(t *testing.T) {
+	Convey("Description of Cli", t, func() {
+		c := New("cli", "1.0.1", "My CLI").
+			New("foo", "It does foo", func() {}).
+			New("bar", "It does bar", func() {}).
+			New("bazoing", "It does bazoing", func() {})
+
+		s := DescribeCli(c)
+		expect := `<headline>cli<reset> <debug>(1.0.1)<reset>
+<info>My CLI<reset>
+
+<subline>Usage:<reset>
+	go-cli.test <command> [<arg> ..] [--opt <val> ..]
+
+<subline>Available commands:<reset>
+	<info>bar    <reset>  It does bar
+	<info>bazoing<reset>  It does bazoing
+	<info>foo    <reset>  It does foo
+	<info>help   <reset>  Show this help
+`
+		So(s, ShouldEqual, expect)
+	})
+}

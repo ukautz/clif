@@ -6,27 +6,36 @@ import (
 	"os"
 )
 
+// Output is interface for outputter classes
 type Output interface {
-	// Printf writes output
+	// Printf writes to output
 	Printf(msg string, args ...interface{})
-	Die(msg string, args ...interface{})
+
+	// SetFormatter is builder method and replaces current formatter
 	SetFormatter(f Formatter) Output
-	SetDieHandler(func(msg string, args ...interface{})) Output
 }
 
 type DefaultOutput struct {
 	fmt Formatter
-	die func(msg string, args ...interface{})
+	io  io.Writer
 }
 
-func newOutput() *DefaultOutput {
-	return &DefaultOutput{
-		fmt: NewDefaultFormatter(),
-		die: func(msg string, args ...interface{}) {
-			fmt.Printf(msg+ "\n", args...)
-			os.Exit(1)
-		},
+func NewOutput(io io.Writer, f Formatter) *DefaultOutput {
+	if io == nil {
+		io = os.Stdout
 	}
+	return &DefaultOutput{
+		fmt: f,
+		io:  io,
+	}
+}
+
+func NewDefaultOutput(io io.Writer) *DefaultOutput {
+	return NewOutput(io, NewDefaultFormatter(nil))
+}
+
+func NewFancyOutput(io io.Writer) *DefaultOutput {
+	return NewOutput(io, NewDefaultFormatter(DefaultStyles))
 }
 
 func (this *DefaultOutput) SetFormatter(f Formatter) Output {
@@ -34,36 +43,6 @@ func (this *DefaultOutput) SetFormatter(f Formatter) Output {
 	return this
 }
 
-func (this *DefaultOutput) SetDieHandler(die func(msg string, args ...interface{})) Output {
-	this.die = die
-	return this
-}
-
-func (this *DefaultOutput) Die(msg string, args ...interface{}) {
-	this.die(msg, args...)
-}
-
 func (this *DefaultOutput) Printf(msg string, args ...interface{}) {
-	fmt.Printf(msg, args...)
-}
-
-type IoOutput struct {
-	DefaultOutput
-	io io.Writer
-}
-
-func NewIoOutput(io io.Writer) *IoOutput {
-	this := &IoOutput{
-		DefaultOutput: *newOutput(),
-		io:     io,
-	}
-	this.SetDieHandler(func(msg string, args ...interface{}) {
-		this.Printf(msg+ "\n", args...)
-		os.Exit(1)
-	})
-	return this
-}
-
-func (this *IoOutput) Printf(msg string, args ...interface{}) {
-	this.io.Write([]byte(this.fmt.Sprintf(msg, args...)))
+	this.io.Write([]byte(this.fmt.Format(fmt.Sprintf(msg, args...))))
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/ukautz/reflekt"
 	"regexp"
-	"strings"
+//	"strings"
 	"time"
 )
 
@@ -77,7 +77,7 @@ func NewArgument(name, usage, _default string, required, multiple bool) *Argumen
 	}
 }
 
-func (this *Argument) Format(templ string) string {
+/*func (this *Argument) Format(templ string) string {
 	res := strings.Replace(templ, ":name:", this.Name, -1)
 	res = strings.Replace(res, ":usage:", this.Usage, -1)
 	res = strings.Replace(res, ":description:", this.Description, -1)
@@ -85,7 +85,7 @@ func (this *Argument) Format(templ string) string {
 	res = strings.Replace(res, ":multiple:", fmt.Sprintf("%v", this.Multiple), -1)
 	res = strings.Replace(res, ":default:", this.Default, -1)
 	return res
-}
+}*/
 
 // Option is like an argument, but with a single or double dash in front
 type Option struct {
