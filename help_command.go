@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-
 type CommandsSort []*Command
 
 func (this CommandsSort) Len() int {

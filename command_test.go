@@ -1,10 +1,11 @@
 package cli
+
 import (
-	"testing"
+	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"regexp"
 	"strings"
-	"fmt"
+	"testing"
 )
 
 func _testInitCommand() *Command {
@@ -12,14 +13,14 @@ func _testInitCommand() *Command {
 		Arguments: []*Argument{
 			{
 				parameter: parameter{
-					Name: "foo",
+					Name:     "foo",
 					Required: true,
-					Regex: regexp.MustCompile(`^a`),
+					Regex:    regexp.MustCompile(`^a`),
 				},
 			},
 			{
 				parameter: parameter{
-					Name: "bar",
+					Name:     "bar",
 					Multiple: true,
 					Validator: func(name, value string) error {
 						if strings.Index(value, "B") == -1 {
@@ -34,148 +35,148 @@ func _testInitCommand() *Command {
 		Options: []*Option{
 			{
 				parameter: parameter{
-					Name: "baz",
+					Name:     "baz",
 					Required: true,
 				},
 			},
 			{
 				parameter: parameter{
-					Name: "bang",
-					Default: "the default",
+					Name:     "bang",
+					Default:  "the default",
 					Multiple: true,
 				},
 			},
 			{
 				parameter: parameter{
-					Name: "zoing",
+					Name:     "zoing",
 					Multiple: true,
 				},
-				Flag: true,
+				Flag:  true,
 				Alias: "z",
 			},
 		},
 	}
 }
 
-var testsCommandParse = []struct{
-	in []string
+var testsCommandParse = []struct {
+	in   []string
 	vals map[string][]string
-	err error
+	err  error
 }{
 	{
-		in: []string{},
+		in:  []string{},
 		err: fmt.Errorf("Argument \"foo\" is required but missing"),
 	},
 	{
-		in: []string{"first"},
+		in:  []string{"first"},
 		err: fmt.Errorf("Parameter \"foo\" invalid: Does not match criteria"),
 	},
 	{
-		in: []string{"afirst"},
+		in:  []string{"afirst"},
 		err: fmt.Errorf("Option \"baz\" is required but missing"),
 	},
 	{
-		in: []string{"afirst", "second"},
+		in:  []string{"afirst", "second"},
 		err: fmt.Errorf("Parameter \"bar\" invalid: Missing B"),
 	},
 	{
-		in: []string{"afirst", "second with B"},
+		in:  []string{"afirst", "second with B"},
 		err: fmt.Errorf("Option \"baz\" is required but missing"),
 	},
 	{
 		in: []string{"afirst", "--baz=x"},
 		vals: map[string][]string{
-			"foo": []string{"afirst"},
-			"baz": []string{"x"},
+			"foo":  []string{"afirst"},
+			"baz":  []string{"x"},
 			"bang": []string{"the default"},
 		},
 	},
 	{
 		in: []string{"afirst", "--baz", "x"},
 		vals: map[string][]string{
-			"foo": []string{"afirst"},
-			"baz": []string{"x"},
+			"foo":  []string{"afirst"},
+			"baz":  []string{"x"},
 			"bang": []string{"the default"},
 		},
 	},
 	{
-		in: []string{"afirst", "--baz=x", "--baz=y"},
+		in:  []string{"afirst", "--baz=x", "--baz=y"},
 		err: fmt.Errorf("Parameter \"baz\" does not support multiple values"),
 	},
 	{
-		in: []string{"afirst", "--baz", "--baz", "x"},
+		in:  []string{"afirst", "--baz", "--baz", "x"},
 		err: fmt.Errorf("Missing value for option \"--baz\""),
 	},
 	{
 		in: []string{"afirst", "second with B", "--baz=x"},
 		vals: map[string][]string{
-			"foo": []string{"afirst"},
-			"bar": []string{"second with B"},
-			"baz": []string{"x"},
+			"foo":  []string{"afirst"},
+			"bar":  []string{"second with B"},
+			"baz":  []string{"x"},
 			"bang": []string{"the default"},
 		},
 	},
 	{
-		in: []string{"afirst", "second with B", "another bar param", "--baz=x"},
+		in:  []string{"afirst", "second with B", "another bar param", "--baz=x"},
 		err: fmt.Errorf("Parameter \"bar\" invalid: Missing B"),
 	},
 	{
 		in: []string{"afirst", "second with B", "another Bar param", "--baz=x"},
 		vals: map[string][]string{
-			"foo": []string{"afirst"},
-			"bar": []string{"second with B", "another Bar param"},
-			"baz": []string{"x"},
+			"foo":  []string{"afirst"},
+			"bar":  []string{"second with B", "another Bar param"},
+			"baz":  []string{"x"},
 			"bang": []string{"the default"},
 		},
 	},
 	{
 		in: []string{"afirst", "--baz=x", "second with B", "another Bar param"},
 		vals: map[string][]string{
-			"foo": []string{"afirst"},
-			"bar": []string{"second with B", "another Bar param"},
-			"baz": []string{"x"},
+			"foo":  []string{"afirst"},
+			"bar":  []string{"second with B", "another Bar param"},
+			"baz":  []string{"x"},
 			"bang": []string{"the default"},
 		},
 	},
 	{
 		in: []string{"afirst", "--baz=x", "second with B", "another Bar param", "--bang", "Bang!"},
 		vals: map[string][]string{
-			"foo": []string{"afirst"},
-			"bar": []string{"second with B", "another Bar param"},
-			"baz": []string{"x"},
+			"foo":  []string{"afirst"},
+			"bar":  []string{"second with B", "another Bar param"},
+			"baz":  []string{"x"},
 			"bang": []string{"Bang!"},
 		},
 	},
 	{
 		in: []string{"afirst", "--baz=x", "second with B", "another Bar param", "--bang", "Bang!", "--bang=Bang!!"},
 		vals: map[string][]string{
-			"foo": []string{"afirst"},
-			"bar": []string{"second with B", "another Bar param"},
-			"baz": []string{"x"},
+			"foo":  []string{"afirst"},
+			"bar":  []string{"second with B", "another Bar param"},
+			"baz":  []string{"x"},
 			"bang": []string{"Bang!", "Bang!!"},
 		},
 	},
 	{
-		in: []string{"afirst", "--baz=x", "second with B", "another Bar param", "--bang", "Bang!", "--zoing=z"},
+		in:  []string{"afirst", "--baz=x", "second with B", "another Bar param", "--bang", "Bang!", "--zoing=z"},
 		err: fmt.Errorf("Flag \"--zoing=z\" cannot have value"),
 	},
 	{
 		in: []string{"afirst", "--baz=x", "second with B", "another Bar param", "--bang", "Bang!", "--zoing"},
 		vals: map[string][]string{
-			"foo": []string{"afirst"},
-			"bar": []string{"second with B", "another Bar param"},
-			"baz": []string{"x"},
-			"bang": []string{"Bang!"},
+			"foo":   []string{"afirst"},
+			"bar":   []string{"second with B", "another Bar param"},
+			"baz":   []string{"x"},
+			"bang":  []string{"Bang!"},
 			"zoing": []string{"true"},
 		},
 	},
 	{
 		in: []string{"afirst", "--baz=x", "second with B", "another Bar param", "--bang", "Bang!", "--zoing", "-z", "-z"},
 		vals: map[string][]string{
-			"foo": []string{"afirst"},
-			"bar": []string{"second with B", "another Bar param"},
-			"baz": []string{"x"},
-			"bang": []string{"Bang!"},
+			"foo":   []string{"afirst"},
+			"bar":   []string{"second with B", "another Bar param"},
+			"baz":   []string{"x"},
+			"bang":  []string{"Bang!"},
 			"zoing": []string{"true", "true", "true"},
 		},
 	},
@@ -224,9 +225,9 @@ func TestCommandAddingArgument(t *testing.T) {
 			So(len(c.Arguments), ShouldEqual, 1)
 			So(c.Arguments[0], ShouldResemble, &Argument{
 				parameter: parameter{
-					Name: "bar",
-					Usage: "A bar",
-					Default: "123",
+					Name:     "bar",
+					Usage:    "A bar",
+					Default:  "123",
 					Required: true,
 				},
 			})
@@ -288,9 +289,9 @@ func TestCommandAddingOptions(t *testing.T) {
 			So(len(c.Options), ShouldEqual, 1)
 			So(c.Options[0], ShouldResemble, &Option{
 				parameter: parameter{
-					Name: "bar",
-					Usage: "A bar",
-					Default: "123",
+					Name:     "bar",
+					Usage:    "A bar",
+					Default:  "123",
 					Required: true,
 				},
 				Alias: "b",

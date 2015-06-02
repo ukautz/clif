@@ -24,7 +24,7 @@ func New(name, version, desc string) *Cli {
 	}
 	this.Add(NewHelpCommand())
 	out := NewFancyOutput(os.Stdout)
-	this.Register(this).Register(out).Register(NewDefaultInput(os.Stdin, out))
+	this.Register(this).SetOutput(out).SetInput(NewDefaultInput(os.Stdin, out))
 	return this
 }
 
@@ -37,6 +37,13 @@ func (this *Cli) Add(cmd *Command) *Cli {
 // New creates and adds a new command
 func (this *Cli) New(name, usage string, call CallMethod) *Cli {
 	return this.Add(NewCommand(name, usage, call).SetCli(this))
+}
+
+// Output is shorthand for currently registered output
+func (this *Cli) Output() Output {
+	t := reflect.TypeOf((*Output)(nil)).Elem()
+	out := this.Registry.Get(t.String())
+	return out.Interface().(Output)
 }
 
 // RegisterAs is builder method and registers object in registry
@@ -59,7 +66,7 @@ func (this *Cli) Run() {
 // Run the cli and be happy
 func (this *Cli) RunWith(args []string) {
 	if len(args) < 1 {
-		Die(DescribeCli(this))
+		this.Output().Printf(DescribeCli(this))
 	} else if c, ok := this.Commands[args[0]]; ok {
 		this.Register(c)
 		method := c.Call.Type()
