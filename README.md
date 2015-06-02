@@ -6,7 +6,7 @@ Go framework to rapidly develop command line applications.
 Example
 -------
 
-![Example]https://cloud.githubusercontent.com/assets/600604/7931252/36ed6694-090f-11e5-9e38-54302fe98efc.gif!
+![Example](https://cloud.githubusercontent.com/assets/600604/7931252/36ed6694-090f-11e5-9e38-54302fe98efc.gif)!
 
 ```go
 package main
