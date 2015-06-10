@@ -22,16 +22,16 @@ func TestDescribeCommand(t *testing.T) {
 <info>It does really, really foo<reset>
 
 <subline>Usage:<reset>
-  foo <bar> ([baz] ...) (--help|-h) --boing|-b <val> ((--zoing|-z) ...)
+  foo bar [baz ...] [--help|-h] --boing|-b val [--zoing|-z] ...
 
 <subline>Arguments:<reset>
   <info>bar<reset>  The bar (req)
   <info>baz<reset>  The baz (mult)
 
 <subline>Options:<reset>
-  <info>--help|-h       <reset>  Display this help message
-  <info>--boing|-b <val><reset>  The boing! (req)
-  <info>--zoing|-z      <reset>  The ZOING! (mult)
+  <info>--help|-h     <reset>  Display this help message
+  <info>--boing|-b val<reset>  The boing! (req)
+  <info>--zoing|-z    <reset>  The ZOING! (mult)
 
 `
 		So(s, ShouldEqual, expect)
@@ -54,17 +54,17 @@ func TestDescriberCli(t *testing.T) {
 <info>My CLI<reset>
 
 <subline>Usage:<reset>
-  go-cli.test <command> [<arg> ..] [--opt <val> ..]
+  go-cli.test command [arg ..] [--opt val ..]
 
 <subline>Available commands:<reset>
   <info>bar    <reset>  It does bar
   <info>bazoing<reset>  It does bazoing
   <info>foo    <reset>  It does foo
   <info>help   <reset>  Show this help
-<subline>bla<reset>
+ <subline>bla<reset>
   <info>bla:due<reset>  A sub of bla
   <info>bla:uno<reset>  A sub of bla
-<subline>zzz<reset>
+ <subline>zzz<reset>
   <info>zzz:due<reset>  A sub of zzz
   <info>zzz:uno<reset>  A sub of zzz
 `

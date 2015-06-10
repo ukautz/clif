@@ -55,15 +55,15 @@ var DescribeCommand = func(c *Command) string {
 	for _, p := range c.Arguments {
 		var short string
 		usg := p.Usage
+		short = p.Name
+		if p.Multiple {
+			short = short + " ..."
+			usg += " (mult)"
+		}
 		if p.Required {
-			short = fmt.Sprintf("<%s>", p.Name)
 			usg += " (req)"
 		} else {
-			short = fmt.Sprintf("[%s]", p.Name)
-		}
-		if p.Multiple {
-			short = "(" + short + " ...)"
-			usg += " (mult)"
+			short = fmt.Sprintf("[%s]", short)
 		}
 		if p.Default != "" {
 			usg += fmt.Sprintf(" (default: \"%s\")", p.Default)
@@ -81,17 +81,17 @@ var DescribeCommand = func(c *Command) string {
 			short += "|-" + p.Alias
 		}
 		if !p.Flag {
-			short += " <val>"
+			short += " val"
 		}
 		long := short
 		usg := p.Usage
 		if !p.Required {
-			short = "(" + short + ")"
+			short = "[" + short + "]"
 		} else {
 			usg += " (req)"
 		}
 		if p.Multiple {
-			short = "(" + short + " ...)"
+			short = short + " ..."
 			usg += " (mult)"
 		}
 		if p.Default != "" {
@@ -141,7 +141,7 @@ var DescribeCli = func(c *Cli) string {
 
 	// usage
 	prog := filepath.Base(os.Args[0])
-	lines = append(lines, fmt.Sprintf("<subline>Usage:<reset>\n  %s <command> [<arg> ..] [--opt <val> ..]\n", prog))
+	lines = append(lines, fmt.Sprintf("<subline>Usage:<reset>\n  %s command [arg ..] [--opt val ..]\n", prog))
 
 	// commands
 	lines = append(lines, "<subline>Available commands:<reset>")
@@ -165,7 +165,7 @@ var DescribeCli = func(c *Cli) string {
 	sort.Strings(prefices)
 	for _, prefix := range prefices {
 		if prefix != "" {
-			lines = append(lines, fmt.Sprintf("<subline>%s<reset>", prefix))
+			lines = append(lines, fmt.Sprintf(" <subline>%s<reset>", prefix))
 		}
 		sort.Sort(CommandsSort(ordered[prefix]))
 		for _, cmd := range ordered[prefix] {
