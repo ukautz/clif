@@ -74,6 +74,7 @@ var DescribeCommand = func(c *Command) string {
 		usage = append(usage, short)
 		args = append(args, []string{p.Name, usg})
 	}
+
 	for _, p := range c.Options {
 		short := fmt.Sprintf("--%s", p.Name)
 		if p.Alias != "" {
@@ -102,13 +103,13 @@ var DescribeCommand = func(c *Command) string {
 		usage = append(usage, short)
 		opts = append(opts, []string{long, usg})
 	}
-	lines = append(lines, "\t"+strings.Join(usage, " "))
+	lines = append(lines, "  "+strings.Join(usage, " "))
 	lines = append(lines, "")
 
 	if len(args) > 0 {
 		lines = append(lines, "<subline>Arguments:<reset>")
 		for _, l := range args {
-			lines = append(lines, fmt.Sprintf("\t<info>%-"+fmt.Sprintf("%d", argMax)+"s<reset>  %s", l[0], l[1]))
+			lines = append(lines, fmt.Sprintf("  <info>%-"+fmt.Sprintf("%d", argMax)+"s<reset>  %s", l[0], l[1]))
 		}
 		lines = append(lines, "")
 	}
@@ -116,7 +117,7 @@ var DescribeCommand = func(c *Command) string {
 	if len(opts) > 0 {
 		lines = append(lines, "<subline>Options:<reset>")
 		for _, l := range opts {
-			lines = append(lines, fmt.Sprintf("\t<info>%-"+fmt.Sprintf("%d", optMax)+"s<reset>  %s", l[0], l[1]))
+			lines = append(lines, fmt.Sprintf("  <info>%-"+fmt.Sprintf("%d", optMax)+"s<reset>  %s", l[0], l[1]))
 		}
 		lines = append(lines, "")
 	}
@@ -140,23 +141,36 @@ var DescribeCli = func(c *Cli) string {
 
 	// usage
 	prog := filepath.Base(os.Args[0])
-	lines = append(lines, fmt.Sprintf("<subline>Usage:<reset>\n\t%s <command> [<arg> ..] [--opt <val> ..]\n", prog))
+	lines = append(lines, fmt.Sprintf("<subline>Usage:<reset>\n  %s <command> [<arg> ..] [--opt <val> ..]\n", prog))
 
 	// commands
 	lines = append(lines, "<subline>Available commands:<reset>")
 	max := 0
-	commands := make([]*Command, len(c.Commands))
-	i := 0
+	ordered := make(map[string][]*Command)
+	prefices := make([]string, 0)
 	for _, cmd := range c.Commands {
-		commands[i] = cmd
-		i++
 		if l := len(cmd.Name); l > max {
 			max = l
 		}
+		prefix := ""
+		if i := strings.Index(cmd.Name, ":"); i > -1 {
+			prefix = cmd.Name[0:i]
+		}
+		if ordered[prefix] == nil {
+			prefices = append(prefices, prefix)
+			ordered[prefix] = make([]*Command, 0)
+		}
+		ordered[prefix] = append(ordered[prefix], cmd)
 	}
-	sort.Sort(CommandsSort(commands))
-	for _, cmd := range commands {
-		lines = append(lines, fmt.Sprintf("\t<info>%-"+fmt.Sprintf("%d", max)+"s<reset>  %s", cmd.Name, cmd.Usage))
+	sort.Strings(prefices)
+	for _, prefix := range prefices {
+		if prefix != "" {
+			lines = append(lines, fmt.Sprintf("<subline>%s<reset>", prefix))
+		}
+		sort.Sort(CommandsSort(ordered[prefix]))
+		for _, cmd := range ordered[prefix] {
+			lines = append(lines, fmt.Sprintf("  <info>%-"+fmt.Sprintf("%d", max)+"s<reset>  %s", cmd.Name, cmd.Usage))
+		}
 	}
 
 	return strings.Join(lines, "\n") + "\n"

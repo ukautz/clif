@@ -5,6 +5,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"testing"
+	"bytes"
 )
 
 type testCliAlias interface {
@@ -82,10 +83,12 @@ func TestCliRun(t *testing.T) {
 				c.RunWith([]string{"baz"})
 			}, ShouldPanicWith, "Command \"baz\" unknown")
 		})
-		Convey("Run without args describes and dies", func() {
-			So(func() {
-				c.RunWith([]string{})
-			}, ShouldPanicWith, DescribeCli(c))
+		Convey("Run without args describes and exits", func() {
+			buf := bytes.NewBuffer(nil)
+			out := NewOutput(buf, NewDefaultFormatter(map[string]string{}))
+			c.SetOutput(out)
+			c.RunWith([]string{})
+			So(buf.String(), ShouldEqual, DescribeCli(c))
 		})
 		Convey("Run method with not registered arg fails", func() {
 			So(func() {

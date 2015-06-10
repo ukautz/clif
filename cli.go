@@ -83,11 +83,15 @@ func (this *Cli) RunWith(args []string) {
 
 		if err := c.Parse(args[1:]); err != nil {
 			Die("Parse error: %s", err)
+		} else if c.Option("help").Bool() {
+			this.Output().Printf(DescribeCommand(c))
+			os.Exit(0)
 		}
 
 		res := c.Call.Call(input)
 
-		if len(res) > 0 && res[0].Type().Implements(reflect.TypeOf((*error)(nil)).Elem()) && !res[0].IsNil() {
+		errType := reflect.TypeOf((*error)(nil)).Elem()
+		if len(res) > 0 && res[0].Type().Implements(errType) && !res[0].IsNil() {
 			Die("Failure in execution: %s", res[0].Interface().(error))
 		}
 	} else {

@@ -22,15 +22,16 @@ func TestDescribeCommand(t *testing.T) {
 <info>It does really, really foo<reset>
 
 <subline>Usage:<reset>
-	foo <bar> ([baz] ...) --boing|-b <val> ((--zoing|-z) ...)
+  foo <bar> ([baz] ...) (--help|-h) --boing|-b <val> ((--zoing|-z) ...)
 
 <subline>Arguments:<reset>
-	<info>bar<reset>  The bar (req)
-	<info>baz<reset>  The baz (mult)
+  <info>bar<reset>  The bar (req)
+  <info>baz<reset>  The baz (mult)
 
 <subline>Options:<reset>
-	<info>--boing|-b <val><reset>  The boing! (req)
-	<info>--zoing|-z      <reset>  The ZOING! (mult)
+  <info>--help|-h       <reset>  Display this help message
+  <info>--boing|-b <val><reset>  The boing! (req)
+  <info>--zoing|-z      <reset>  The ZOING! (mult)
 
 `
 		So(s, ShouldEqual, expect)
@@ -42,20 +43,30 @@ func TestDescriberCli(t *testing.T) {
 		c := New("cli", "1.0.1", "My CLI").
 			New("foo", "It does foo", func() {}).
 			New("bar", "It does bar", func() {}).
-			New("bazoing", "It does bazoing", func() {})
+			New("bazoing", "It does bazoing", func() {}).
+			New("zzz:uno", "A sub of zzz", func() {}).
+			New("zzz:due", "A sub of zzz", func() {}).
+			New("bla:due", "A sub of bla", func() {}).
+			New("bla:uno", "A sub of bla", func() {})
 
 		s := DescribeCli(c)
 		expect := `<headline>cli<reset> <debug>(1.0.1)<reset>
 <info>My CLI<reset>
 
 <subline>Usage:<reset>
-	go-cli.test <command> [<arg> ..] [--opt <val> ..]
+  go-cli.test <command> [<arg> ..] [--opt <val> ..]
 
 <subline>Available commands:<reset>
-	<info>bar    <reset>  It does bar
-	<info>bazoing<reset>  It does bazoing
-	<info>foo    <reset>  It does foo
-	<info>help   <reset>  Show this help
+  <info>bar    <reset>  It does bar
+  <info>bazoing<reset>  It does bazoing
+  <info>foo    <reset>  It does foo
+  <info>help   <reset>  Show this help
+<subline>bla<reset>
+  <info>bla:due<reset>  A sub of bla
+  <info>bla:uno<reset>  A sub of bla
+<subline>zzz<reset>
+  <info>zzz:due<reset>  A sub of zzz
+  <info>zzz:uno<reset>  A sub of zzz
 `
 		So(s, ShouldEqual, expect)
 	})

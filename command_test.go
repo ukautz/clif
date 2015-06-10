@@ -286,8 +286,8 @@ func TestCommandAddingOptions(t *testing.T) {
 		})
 		Convey("Adding single option", func() {
 			c.NewOption("bar", "b", "A bar", "123", true, false)
-			So(len(c.Options), ShouldEqual, 1)
-			So(c.Options[0], ShouldResemble, &Option{
+			So(len(c.Options), ShouldEqual, 2)
+			So(c.Options, ShouldResemble, []*Option{DefaultHelpOption, {
 				parameter: parameter{
 					Name:     "bar",
 					Usage:    "A bar",
@@ -295,11 +295,11 @@ func TestCommandAddingOptions(t *testing.T) {
 					Required: true,
 				},
 				Alias: "b",
-			})
+			}})
 
 			Convey("Adding additional option with different name", func() {
 				c.NewOption("baz", "", "A baz", "", false, false)
-				So(len(c.Options), ShouldEqual, 2)
+				So(len(c.Options), ShouldEqual, 3)
 
 				Convey("Adding option with existing name does not fly", func() {
 					So(func() {

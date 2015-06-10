@@ -24,6 +24,21 @@ type Command struct {
 	Call        reflect.Value
 }
 
+// DefaultOptions are prepended to any newly created command
+var DefaultHelpOption = &Option{
+	parameter: parameter{
+		Name:        "help",
+		Usage:       "Display this help message",
+		Description: "Display this help message",
+	},
+	Alias: "h",
+	Flag:  true,
+}
+
+// DefaultOptions are prepended to any newly created command
+var DefaultOptions = []*Option{DefaultHelpOption}
+
+// NewCommand constructs new command
 func NewCommand(name, usage string, call CallMethod) *Command {
 	ref := reflect.ValueOf(call)
 	if ref.Kind() != reflect.Func {
@@ -32,7 +47,7 @@ func NewCommand(name, usage string, call CallMethod) *Command {
 	return &Command{
 		Name:      name,
 		Usage:     usage,
-		Options:   make([]*Option, 0),
+		Options:   DefaultOptions,
 		Arguments: make([]*Argument, 0),
 		Call:      ref,
 	}
