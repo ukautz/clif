@@ -76,6 +76,14 @@ func main() {
 	cmd.AddOption(cnt)
 	c.Add(cmd)
 
+	cb := func(c *cli.Command, out cli.Output) {
+		out.Printf("Called %s\n", c.Name)
+	}
+	c.New("bar:baz", "A grouped command", cb).
+		New("bar:zoing", "Another grouped command", cb).
+		New("hmm:huh", "Yet another grouped command", cb).
+		New("hmm:uhm", "And yet another grouped command", cb)
+
 	// execute the main loop
 	c.Run()
 }

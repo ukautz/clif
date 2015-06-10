@@ -81,11 +81,13 @@ func (this *Cli) RunWith(args []string) {
 			}
 		}
 
-		if err := c.Parse(args[1:]); err != nil {
-			Die("Parse error: %s", err)
-		} else if c.Option("help").Bool() {
+		err := c.Parse(args[1:])
+		if c.Option("help").Bool() {
 			this.Output().Printf(DescribeCommand(c))
 			os.Exit(0)
+		}
+		if err != nil {
+			Die("Parse error: %s", err)
 		}
 
 		res := c.Call.Call(input)
