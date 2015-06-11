@@ -29,8 +29,10 @@ func New(name, version, desc string) *Cli {
 }
 
 // Add is a builder method for adding a new command
-func (this *Cli) Add(cmd *Command) *Cli {
-	this.Commands[cmd.Name] = cmd.SetCli(this)
+func (this *Cli) Add(cmd ...*Command) *Cli {
+	for _, c := range cmd {
+		this.Commands[c.Name] = c.SetCli(this)
+	}
 	return this
 }
 

@@ -1,11 +1,11 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"testing"
-	"bytes"
 )
 
 type testCliAlias interface {
@@ -104,6 +104,31 @@ func TestCliRun(t *testing.T) {
 			So(func() {
 				c.RunWith([]string{"errme"})
 			}, ShouldPanicWith, "Failure in execution: I error!")
+		})
+	})
+}
+
+func TestCliConstruction(t *testing.T) {
+	Convey("Create new Cli with commands", t, func() {
+		app := New("My App", "1.0.0", "Testing app")
+		cb := func() {}
+
+		Convey("Use command constructor", func() {
+			app.New("foo", "For fooing", cb)
+			So(len(app.Commands), ShouldEqual, 2)
+			So(app.Commands["foo"], ShouldNotBeNil)
+		})
+
+		Convey("Use variadic adding", func() {
+			app.New("foo", "For fooing", cb)
+			cmds := []*Command{
+				NewCommand("foo", "For fooing", cb),
+				NewCommand("bar", "For baring", cb),
+			}
+			app.Add(cmds...)
+			So(len(app.Commands), ShouldEqual, 3)
+			So(app.Commands["foo"], ShouldNotBeNil)
+			So(app.Commands["bar"], ShouldNotBeNil)
 		})
 	})
 }
