@@ -6,12 +6,12 @@ Go framework to rapidly develop command line applications.
 Example
 -------
 
-![Example](https://cloud.githubusercontent.com/assets/600604/7931252/36ed6694-090f-11e5-9e38-54302fe98efc.gif)!
+![extended](https://cloud.githubusercontent.com/assets/600604/8201524/50f04bdc-14d2-11e5-8ccb-591ef9e9b1f1.png)
 
 ```go
 package main
 
-import "github.com/ukautz/go-cli"
+import "gopkg.in/ukautz/clif.v0"
 
 func main() {
 	c := cli.New("My App", "1.0.0", "An example application").
@@ -24,6 +24,7 @@ func main() {
 
 - - -
 
+* [Install](#install)
 * [Getting started](#getting-started)
 * [Commands](#commands)
   * [Callback functions](#callback-functions)
@@ -38,6 +39,13 @@ func main() {
 * [See also](#see-also)
 
 - - -
+
+Install
+-------
+
+``` bash
+$ go get gopkg.in/ukautz/clif.v0
+```
 
 Getting started
 ---------------
@@ -82,7 +90,7 @@ CLIF pre-populates the dependency container with a couple of built-in objects:
 ``` go
 package main
 
-import "github.com/ukautz/clif"
+import "gopkg.in/ukautz/clif.v0"
 
 type MyFoo struct {}
 
@@ -105,7 +113,7 @@ If you want to register an `interface`, you need to use the Go'ish way:
 ``` go
 package main
 
-import "github.com/ukautz/clif"
+import "gopkg.in/ukautz/clif.v0"
 
 // the interface
 type MyFoo interface {
@@ -129,8 +137,6 @@ func main() {
 	cli.Run()
 }
 ```
-
-
 
 ### Arguments and Options
 
@@ -281,7 +287,7 @@ func callbackFunctionI(in clif.Input, out clif.Output) {
 }
 ```
 
-TODO: image
+![input](https://cloud.githubusercontent.com/assets/600604/8201525/510f730e-14d2-11e5-83aa-b238c804e98f.png)
 
 ### Customizing Input
 

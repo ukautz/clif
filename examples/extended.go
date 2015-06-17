@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/ukautz/clif"
+	"gopkg.in/ukautz/clif.v0"
 	"reflect"
 	"os"
 	"fmt"

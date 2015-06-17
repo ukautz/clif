@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/ukautz/clif"
+	"gopkg.in/ukautz/clif.v0"
 )
 
 func callIn(in clif.Input, out clif.Output) {
