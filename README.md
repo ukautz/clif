@@ -1,7 +1,9 @@
-Go CLI framework
-================
+![status](https://api.travis-ci.org/ukautz/clif.svg?branch=v0)
 
-Go framework to rapidly develop command line applications.
+CLIF - Command line interface framework
+=======================================
+
+Go framework for rapid command line application development.
 
 Example
 -------
