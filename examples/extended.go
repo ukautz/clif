@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/ukautz/go-cli"
+	"github.com/ukautz/clif"
 	"reflect"
 	"os"
 	"fmt"
@@ -21,11 +21,11 @@ func (this *exampleStruct) Foo() string {
 	return this.foo
 }
 
-func callHello(out cli.Output) {
+func callHello(out clif.Output) {
 	out.Printf("Hello World\n")
 }
 
-func callFoo(c *cli.Command, out cli.Output, custom1 exampleInterface, custom2 *exampleStruct) {
+func callFoo(c *clif.Command, out clif.Output, custom1 exampleInterface, custom2 *exampleStruct) {
 	out.Printf("Hello %s, how is the %s?\n", c.Argument("name").String(), c.Option("whatever").String())
 	if m := c.Argument("more-names").Strings(); m != nil && len(m) > 0 {
 		for _, n := range m {
@@ -52,31 +52,31 @@ go run extended.go foo peter -w bla everybody -c=12 else
 
 func main() {
 	// initialize the app with custom registered objects in the injection container
-	c := cli.New("My App", "1.0.0", "An example application").
+	c := clif.New("My App", "1.0.0", "An example application").
 		Register(&exampleStruct{"bar1"}).
 		RegisterAs(reflect.TypeOf((*exampleInterface)(nil)).Elem().String(), &exampleStruct{"bar2"}).
 		New("hello", "The obligatory hello world", callHello)
 
 	// extend output styles
-	cli.DefaultStyles["mine"] = "\033[32;1m"
+	clif.DefaultStyles["mine"] = "\033[32;1m"
 
 	// customize error handler
-	cli.Die = func(msg string, args ...interface{}) {
+	clif.Die = func(msg string, args ...interface{}) {
 		c.Output().Printf("<error>Everyting went wrong: %s<reset>\n\n", fmt.Sprintf(msg, args...))
 		os.Exit(1)
 	}
 
 	// build & add a complex command
-	cmd := cli.NewCommand("foo", "It does foo", callFoo).
+	cmd := clif.NewCommand("foo", "It does foo", callFoo).
 		NewArgument("name", "Name for greeting", "", true, false).
 		NewArgument("more-names", "And more names for greeting", "", false, true).
 		NewOption("whatever", "w", "Some required option", "", true, false)
-	cnt := cli.NewOption("counter", "c", "Show how high you can count", "", false, false)
-	cnt.SetValidator(cli.IsInt)
+	cnt := clif.NewOption("counter", "c", "Show how high you can count", "", false, false)
+	cnt.SetValidator(clif.IsInt)
 	cmd.AddOption(cnt)
 	c.Add(cmd)
 
-	cb := func(c *cli.Command, out cli.Output) {
+	cb := func(c *clif.Command, out clif.Output) {
 		out.Printf("Called %s\n", c.Name)
 	}
 	c.New("bar:baz", "A grouped command", cb).

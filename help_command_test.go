@@ -1,4 +1,4 @@
-package cli
+package clif
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
@@ -54,7 +54,7 @@ func TestDescriberCli(t *testing.T) {
 <info>My CLI<reset>
 
 <subline>Usage:<reset>
-  go-cli.test command [arg ..] [--opt val ..]
+  clif.test command [arg ..] [--opt val ..]
 
 <subline>Available commands:<reset>
   <info>bar    <reset>  It does bar

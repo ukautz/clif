@@ -1,4 +1,4 @@
-package cli
+package clif
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ func TestDefaultInput(t *testing.T) {
 	Convey("Input data", t, func() {
 		bufIn := bytes.NewBuffer(nil)
 		bufOut := bytes.NewBuffer(nil)
-		out := NewDefaultOutput(bufOut)
+		out := NewPlainOutput(bufOut)
 		in := NewDefaultInput(bufIn, out)
 
 		Convey("Ask returns on any non-empty input", func() {

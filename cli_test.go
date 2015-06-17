@@ -1,4 +1,4 @@
-package cli
+package clif
 
 import (
 	"bytes"
@@ -51,7 +51,7 @@ func TestCliRun(t *testing.T) {
 			Register(&testCliInject{
 			Foo: 100,
 		}).
-			RegisterAs("cli.testCliAlias", &testCliInject{
+			RegisterAs("clif.testCliAlias", &testCliInject{
 			Foo: 200,
 		})
 

@@ -1,4 +1,4 @@
-package cli
+package clif
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ func (this *testCustomFormatter) Format(msg string) string {
 func TestOutput(t *testing.T) {
 	Convey("Default output rendering", t, func() {
 		b := bytes.NewBuffer(nil)
-		o := NewDefaultOutput(b)
+		o := NewPlainOutput(b)
 		o.Printf("With <headline>formatted<reset> input")
 		So(b.String(), ShouldEqual, "With formatted input")
 	})
@@ -34,7 +34,7 @@ func TestOutput(t *testing.T) {
 	})
 	Convey("Switching formatter later on", t, func() {
 		b := bytes.NewBuffer(nil)
-		o := NewDefaultOutput(b)
+		o := NewPlainOutput(b)
 		o.SetFormatter(&testCustomFormatter{})
 		o.Printf("With <headline>formatted<reset> input")
 		So(b.String(), ShouldEqual, "WITH <HEADLINE>FORMATTED<RESET> INPUT")

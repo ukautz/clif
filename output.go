@@ -1,4 +1,4 @@
-package cli
+package clif
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ func NewOutput(io io.Writer, f Formatter) *DefaultOutput {
 	}
 }
 
-func NewDefaultOutput(io io.Writer) *DefaultOutput {
+func NewPlainOutput(io io.Writer) *DefaultOutput {
 	return NewOutput(io, NewDefaultFormatter(nil))
 }
 
