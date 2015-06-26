@@ -22,7 +22,16 @@ func (this *exampleStruct) Foo() string {
 }
 
 func callHello(out clif.Output) {
-	out.Printf("Hello World\n")
+	out.Printf("Hello <mine>World<reset>\n")
+}
+
+func callStyles(out clif.Output) {
+	for token, _ := range clif.DefaultStyles {
+		if token == "mine" {
+			continue
+		}
+		out.Printf("Token \\<%s>: <%s>%s<reset>\n", token, token, token)
+	}
 }
 
 func callFoo(c *clif.Command, out clif.Output, custom1 exampleInterface, custom2 *exampleStruct) {
@@ -51,14 +60,22 @@ go run extended.go foo peter -w bla everybody -c=12 else
 */
 
 func main() {
+	switch style := os.Getenv("STYLE"); style {
+	case "sunburn":
+		clif.DefaultStyles = clif.SunburnStyles
+	case "winter":
+		clif.DefaultStyles = clif.WinterStyles
+	}
+
+	// extend output styles
+	clif.DefaultStyles["mine"] = "\033[32;1m"
+
 	// initialize the app with custom registered objects in the injection container
 	c := clif.New("My App", "1.0.0", "An example application").
 		Register(&exampleStruct{"bar1"}).
 		RegisterAs(reflect.TypeOf((*exampleInterface)(nil)).Elem().String(), &exampleStruct{"bar2"}).
-		New("hello", "The obligatory hello world", callHello)
-
-	// extend output styles
-	clif.DefaultStyles["mine"] = "\033[32;1m"
+		New("hello", "The obligatory hello world", callHello).
+		New("styles", "Print all color style tokens", callStyles)
 
 	// customize error handler
 	clif.Die = func(msg string, args ...interface{}) {

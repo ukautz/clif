@@ -38,6 +38,7 @@ func main() {
 * [Input &amp; Output](#input--output)
   * [Customizing Input](#customizing-input)
   * [Extending Output](#extending-output)
+* [Patterns](#patterns)
 * [See also](#see-also)
 
 - - -
@@ -67,8 +68,8 @@ Commands
 Commands must have a unique name and can have additional arguments and options.
 
 ``` go
-cmd1 := cli.NewCommand("name", "A description", callBackFunction)
-cmd2 := cli.NewCommand("other", "Another description", callBackFunction2)
+cmd1 := clif.NewCommand("name", "A description", callBackFunction)
+cmd2 := clif.NewCommand("other", "Another description", callBackFunction2)
 ```
 
 The `name` is used from the command line to call the command:
@@ -154,10 +155,10 @@ Of course you can use arguments and options at the same time..
 Arguments are additional command line parameters which come after the command name itself.
 
 ``` go
-cmd := cli.NewCommand("hello", "A description", callBackFunction)
+cmd := clif.NewCommand("hello", "A description", callBackFunction)
 	.NewArgument("name", "Name for greeting", "", true, false)
 
-arg := clif.NewAgument("other", "Something ..", "default", false, true)
+arg := cmd.NewAgument("other", "Something ..", "default", false, true)
 cmd.AddArgument(arg)
 ```
 
@@ -191,10 +192,10 @@ func callbackFunctionI(c *clif.Command) {
 Options have no fixed position. They are referenced by their name (eg `--name`) or alias (eg `-n`).
 
 ``` go
-cmd := cli.NewCommand("hello", "A description", callBackFunction)
+cmd := clif.NewCommand("hello", "A description", callBackFunction)
 	.NewOption("name", "n", "Name for greeting", "", true, false)
 
-arg := clif.NewOption("other", "O", "Something ..", "default", false, true)
+arg := cmd.NewOption("other", "O", "Something ..", "default", false, true)
 cmd.AddOption(arg)
 ```
 
@@ -225,7 +226,7 @@ There is a special kind of option, which does not expect a parameter: the flag.
 
 ``` go
 flag := clif.NewOption("my-flag", "f", "Something ..", "", false, false).IsFlag()
-cmd := cli.NewCommand("hello", "A description", callBackFunction).AddOption(flag)
+cmd := clif.NewCommand("hello", "A description", callBackFunction).AddOption(flag)
 ```
 
 Usually, you want to use `Bool()` on flags:
@@ -255,7 +256,7 @@ arg.SetValidator(func(name, value string) error {
 
 There are a couple of built-in validators you can use out of the box:
 
-* `clif.IsInt` - Checks for integer 
+* `clif.IsInt` - Checks for integer
 * `clif.IsFloat` - Checks for float
 
 See [validators.go](validators.go).
@@ -293,7 +294,7 @@ func callbackFunctionI(in clif.Input, out clif.Output) {
 
 ### Customizing Input
 
-There is not much. Check out `RenderChooseQuestion`, `RenderChooseOption` and `RenderChooseQuery` in [input.go](input.go). 
+There is not much. Check out `RenderChooseQuestion`, `RenderChooseOption` and `RenderChooseQuery` in [input.go](input.go).
 
 ### Extending Output
 
@@ -305,6 +306,11 @@ cli.SetOutput(clif.NewPlainOutput())
 ```
 
 To extend or change the fancy style, please modify `clif.DefaultStyles` in [formatter.go](formatter.go).
+
+Patterns
+--------
+
+A pattern I employ when developing CLI applications
 
 See also
 --------

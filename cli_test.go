@@ -93,7 +93,7 @@ func TestCliRun(t *testing.T) {
 		Convey("Run method with not registered arg fails", func() {
 			So(func() {
 				c.RunWith([]string{"oops"})
-			}, ShouldPanicWith, "Missing parameter io.Writer")
+			}, ShouldPanicWith, "Missing callback parameter io.Writer")
 		})
 		Convey("Run method with invalid arg fails", func() {
 			So(func() {

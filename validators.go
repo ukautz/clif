@@ -42,7 +42,7 @@ func IsInt(name, value string) error {
 
 var rxIsFloat = regexp.MustCompile(`^[0-9]+(?:\.[0-9]+)?$`)
 
-// IsInt checks if value is float
+// IsFloat checks if value is float
 func IsFloat(name, value string) error {
 	if !rxIsFloat.MatchString(value) {
 		return fmt.Errorf("Is not float")

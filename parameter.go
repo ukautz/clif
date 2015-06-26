@@ -18,7 +18,10 @@ Arguments are fixed positioned, meaning their order does matter. Options
 
 */
 
+// ParserMethod is type for callback used to transform user input
 type ParserMethod func(name, value string) (string, error)
+
+// ValidatorMethod is type for callback used to check user input
 type ValidatorMethod func(name, value string) error
 
 // parameter is core for Argument and Option
@@ -37,7 +40,7 @@ type parameter struct {
 	// Should NOT be changed after adding with `AddCommand` from `Command`
 	Required bool
 
-	// Whether multiple values are allowed. Only
+	// Multiple decides whether multiple values are allowed.
 	Multiple bool
 
 	// Default is used if no value is provided
@@ -46,25 +49,29 @@ type parameter struct {
 	// Value holds what was provided on the command line
 	Values []string
 
-	// Parser generates value to be returned on calling `Parsed()` (optional)
+	// Parser is optional callback, which is applied on parameter values
+	// after they are validated. It can be used to transform user provided
+	// inputs. Mind that inputs can be multiple and it will be called for each
+	// of those multiple inputs.
 	Parser ParserMethod
 
 	// Regex for checking if input value can be accepted
 	Regex *regexp.Regexp
 
-	// Validator method to check if input value can be accepted
+	// Validator is optional callback to check/validate the user provided input.
+	// Errors will be delegated back to the user.
 	Validator ValidatorMethod
 }
 
-/*
-Arguments must be provided immediately after the command in the order they were added.
-Non required arguments must be orderd after required arguments. Only one argument is allowed
-to contain multiple values and it needs to be the last one.
-*/
+
+// Arguments must be provided immediately after the command in the order they were
+// added. Non required arguments must be ordered after required arguments. Only
+// one argument is allowed to contain multiple values and it needs to be the last one.
 type Argument struct {
 	parameter
 }
 
+// NewArgument constructs a new argument
 func NewArgument(name, usage, _default string, required, multiple bool) *Argument {
 	return &Argument{
 		parameter: parameter{
@@ -77,17 +84,11 @@ func NewArgument(name, usage, _default string, required, multiple bool) *Argumen
 	}
 }
 
-/*func (this *Argument) Format(templ string) string {
-	res := strings.Replace(templ, ":name:", this.Name, -1)
-	res = strings.Replace(res, ":usage:", this.Usage, -1)
-	res = strings.Replace(res, ":description:", this.Description, -1)
-	res = strings.Replace(res, ":required:", fmt.Sprintf("%v", this.Required), -1)
-	res = strings.Replace(res, ":multiple:", fmt.Sprintf("%v", this.Multiple), -1)
-	res = strings.Replace(res, ":default:", this.Default, -1)
-	return res
-}*/
-
-// Option is like an argument, but with a single or double dash in front
+// Option is a user input which is initialized with a single or double dash
+// (eg "--foo" or "-f"). It may not be followed by a value, in which case it
+// is considered a flag (see `IsFlag`). Options can be multiple inputs (no
+// restrictions as there are for Arguments). An option can be required or optional.
+// Options do not need to have any particular order.
 type Option struct {
 	parameter
 
@@ -98,6 +99,7 @@ type Option struct {
 	Flag bool
 }
 
+// NewOption contstructs new option
 func NewOption(name, alias, usage, _default string, required, multiple bool) *Option {
 	return &Option{
 		parameter: parameter{
@@ -111,6 +113,9 @@ func NewOption(name, alias, usage, _default string, required, multiple bool) *Op
 	}
 }
 
+// IsFlag marks an option as a flag. A Flag does not have any values. If it
+// exists (eg "--verbose"), then it is automatically initialized with the string
+// "true", which then can be checked with the `Bool()` method for actual `bool`
 func (this *Option) IsFlag() *Option {
 	this.Flag = true
 	return this
@@ -122,19 +127,22 @@ Builder
 ---------------------
 */
 
-// SetUsage is a builder method to set usage
+// SetUsage is a builder method to set usage. Usage is a shorthand description
+// which is used in help generation.
 func (this *parameter) SetUsage(v string) *parameter {
 	this.Usage = v
 	return this
 }
 
-// SetDescription is a builder method to set description
+// SetDescription is a builder method to set description. Description is an
+// elaborate explanation which is used in help generation.
 func (this *parameter) SetDescription(v string) *parameter {
 	this.Description = v
 	return this
 }
 
-// SetDefault is a builder method to set default value
+// SetDefault is a builder method to set default value. Default value is used
+// if the parameter is not provided.
 func (this *parameter) SetDefault(v string) *parameter {
 	this.Default = v
 	return this
@@ -227,7 +235,7 @@ func (this *parameter) String() string {
 	}
 }
 
-// Strings representation of the value (can be nil)
+// Strings returns values as array of strings
 func (this *parameter) Strings() []string {
 	return this.Values
 }
@@ -241,7 +249,7 @@ func (this *parameter) Int() int {
 	}
 }
 
-// Ints representation of the value (can be nil, if non given or slice of 0-values for)
+// Ints returns values as int array (values will be 0, if not parsable to int)
 func (this *parameter) Ints() []int {
 	if this.Values == nil {
 		return nil
@@ -254,7 +262,7 @@ func (this *parameter) Ints() []int {
 	}
 }
 
-// Float representation of the value (will be 0, if not given or not parsable)
+// Float representation of the value (will be 0.0, if not given or not parsable)
 func (this *parameter) Float() float64 {
 	if this.Values == nil {
 		return 0
@@ -263,7 +271,7 @@ func (this *parameter) Float() float64 {
 	}
 }
 
-// Ints representation of the value (can be nil, if non given or slice of 0-values for)
+// Floats returns values as float64 array (values will be 0.0, if not parsable to float64)
 func (this *parameter) Floats() []float64 {
 	if this.Values == nil {
 		return nil
@@ -276,7 +284,7 @@ func (this *parameter) Floats() []float64 {
 	}
 }
 
-// Float representation of the value (will be false, if not given or not parsable)
+// Bool representation of the value (will be false, if not given or not parsable)
 func (this *parameter) Bool() bool {
 	if this.Values == nil {
 		return false
@@ -285,7 +293,7 @@ func (this *parameter) Bool() bool {
 	}
 }
 
-// Ints representation of the value (can be nil, if non given or slice of 0-values for)
+// Bools returns values as bool array (values will be false, if not parsable to float64)
 func (this *parameter) Bools() []bool {
 	if this.Values == nil {
 		return nil
@@ -298,7 +306,7 @@ func (this *parameter) Bools() []bool {
 	}
 }
 
-// Date is a date time representation of the value
+// Time is a date time representation of the value with a provided format.
 // If no format is provided, then `2006-01-02 15:04:05` will be used
 func (this *parameter) Time(format ...string) (*time.Time, error) {
 	if this.Values == nil {
@@ -316,6 +324,8 @@ func (this *parameter) Time(format ...string) (*time.Time, error) {
 	}
 }
 
+// Times returns array for `time.Time` values, parsed from provided format.
+// See `Time()`.
 func (this *parameter) Times(format ...string) ([]time.Time, error) {
 	if this.Values == nil {
 		return nil, nil
@@ -337,7 +347,9 @@ func (this *parameter) Times(format ...string) ([]time.Time, error) {
 }
 
 // Json assumes the input is a JSON string and parses into a standard map[string]interface{}
-// Returns error, if not parsable (or eg array JSON)
+// Returns error, if not parsable (or eg array JSON).
+//
+// Helpful to allow complex inputs: `my-app do --foo '{"bar": "baz"}'`
 func (this *parameter) Json() (map[string]interface{}, error) {
 	if this.Values == nil {
 		return nil, nil
@@ -350,6 +362,8 @@ func (this *parameter) Json() (map[string]interface{}, error) {
 		}
 	}
 }
+
+// Jsons returns values as individual JSON strings. See `Json()` above.
 func (this *parameter) Jsons() ([]map[string]interface{}, error) {
 	if this.Values == nil {
 		return nil, nil

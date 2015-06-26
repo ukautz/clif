@@ -13,7 +13,7 @@ func TestDefaultInput(t *testing.T) {
 	Convey("Input data", t, func() {
 		bufIn := bytes.NewBuffer(nil)
 		bufOut := bytes.NewBuffer(nil)
-		out := NewPlainOutput(bufOut)
+		out := NewMonochromeOutput(bufOut)
 		in := NewDefaultInput(bufIn, out)
 
 		Convey("Ask returns on any non-empty input", func() {

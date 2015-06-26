@@ -14,6 +14,7 @@ type Cli struct {
 	Registry    *Registry
 }
 
+// New constructs new cli
 func New(name, version, desc string) *Cli {
 	this := &Cli{
 		Name:        name,
@@ -23,7 +24,7 @@ func New(name, version, desc string) *Cli {
 		Registry:    NewRegistry(),
 	}
 	this.Add(NewHelpCommand())
-	out := NewFancyOutput(os.Stdout)
+	out := NewColoredOutput(os.Stdout)
 	this.Register(this).SetOutput(out).SetInput(NewDefaultInput(os.Stdin, out))
 	return this
 }
@@ -60,29 +61,18 @@ func (this *Cli) RegisterAs(n string, v interface{}) *Cli {
 	return this
 }
 
-// Run with arguments
+// Run with OS command line arguments
 func (this *Cli) Run() {
 	this.RunWith(os.Args[1:])
 }
 
-// Run the cli and be happy
+// RunWith runs the cli with custom list of arguments
 func (this *Cli) RunWith(args []string) {
 	if len(args) < 1 {
 		this.Output().Printf(DescribeCli(this))
 	} else if c, ok := this.Commands[args[0]]; ok {
-		this.Register(c)
-		method := c.Call.Type()
-		input := make([]reflect.Value, method.NumIn())
-		for i := 0; i < method.NumIn(); i++ {
-			t := method.In(i)
-			s := t.String()
-			if this.Registry.Has(s) {
-				input[i] = this.Registry.Get(s)
-			} else {
-				Die("Missing parameter %s", s)
-			}
-		}
 
+		// parse arguments & options
 		err := c.Parse(args[1:])
 		if c.Option("help").Bool() {
 			this.Output().Printf(DescribeCommand(c))
@@ -92,6 +82,19 @@ func (this *Cli) RunWith(args []string) {
 			Die("Parse error: %s", err)
 		}
 
+		// build callback arguments and execute
+		this.Register(c)
+		method := c.Call.Type()
+		input := make([]reflect.Value, method.NumIn())
+		for i := 0; i < method.NumIn(); i++ {
+			t := method.In(i)
+			s := t.String()
+			if this.Registry.Has(s) {
+				input[i] = this.Registry.Get(s)
+			} else {
+				Die("Missing callback parameter %s", s)
+			}
+		}
 		res := c.Call.Call(input)
 
 		errType := reflect.TypeOf((*error)(nil)).Elem()

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 )
 
 func _testInitCommand() *Command {
@@ -56,6 +57,45 @@ func _testInitCommand() *Command {
 			},
 		},
 	}
+}
+
+func TestCommandCreation(t *testing.T) {
+	Convey("Creating command with constructor", t, func() {
+		Convey("Adding command with empty signature and empty return", func() {
+			c := NewCommand("name", "Usage", func() {
+				//
+			})
+			So(c, ShouldNotBeNil)
+		})
+		Convey("Adding command with non-empty signature and empty return", func() {
+			c := NewCommand("name", "Usage", func(foo string, bar int, baz time.Time) {
+				//
+			})
+			So(c, ShouldNotBeNil)
+		})
+		Convey("Adding command with empty signature and non-empty return", func() {
+			c := NewCommand("name", "Usage", func() (string, int, time.Time, error) {
+				return "", 0, time.Now(), nil
+			})
+			So(c, ShouldNotBeNil)
+		})
+		Convey("Adding command with non-empty signature and non-empty return", func() {
+			c := NewCommand("name", "Usage", func(foo string, bar int, baz time.Time) (string, int, time.Time, error) {
+				return "", 0, time.Now(), nil
+			})
+			So(c, ShouldNotBeNil)
+		})
+		Convey("Adding command which is not a func", func() {
+			So(func() {
+				NewCommand("name", "Usage", "foo")
+			}, ShouldPanicWith, "Call must be method, but is string")
+		})
+		Convey("Adding command which is also not a func", func() {
+			So(func() {
+				NewCommand("name", "Usage", time.Now())
+			}, ShouldPanicWith, "Call must be method, but is struct")
+		})
+	})
 }
 
 var testsCommandParse = []struct {
@@ -180,6 +220,14 @@ var testsCommandParse = []struct {
 			"zoing": []string{"true", "true", "true"},
 		},
 	},
+	{
+		in:  []string{"-="},
+		err: fmt.Errorf("Malformed option \"-=\""),
+	},
+	{
+		in:  []string{"--not-there"},
+		err: fmt.Errorf("Unrecognized option \"--not-there\""),
+	},
 }
 
 func TestCommandParse(t *testing.T) {
@@ -194,6 +242,24 @@ func TestCommandParse(t *testing.T) {
 				}
 			})
 		}
+	})
+}
+
+func TestCommandParseFallsBackToDefaults(t *testing.T) {
+	Convey("Parse commands with default values for options and/or arguments", t, func() {
+		c := NewCommand("command", "Usage", func(){}).
+			NewArgument("foo", "For fooing", "FOO", true, false).
+			NewOption("bar", "b", "For baring", "BAR", true, false)
+		Convey("Missing required argument defaults", func() {
+			err := c.Parse([]string{})
+			So(err, ShouldBeNil)
+			So(c.Argument("foo").String(), ShouldEqual, "FOO")
+		})
+		Convey("Missing required option defaults", func() {
+			err := c.Parse([]string{})
+			So(err, ShouldBeNil)
+			So(c.Option("bar").String(), ShouldEqual, "BAR")
+		})
 	})
 }
 

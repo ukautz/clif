@@ -11,20 +11,37 @@ var (
 	rxFlag = regexp.MustCompile(`^(?:true|false|yes|no)$`)
 )
 
+// CallMethod is the interface for functions used as command callbacks.
+// `interface{}` is used so that those functions can have arbitrary input and output signatures.
+// However, they still must be functions.
 type CallMethod interface{}
 
-// Command ..
+// Command represents a named callback with a set of arguments and options
 type Command struct {
-	Cli         *Cli
-	Name        string
-	Usage       string
+
+	// Cli back-references the Cli in which the command is registered
+	Cli *Cli
+
+	// Name is the unique (within Cli scope) call-name of the command
+	Name string
+
+	// Usage is a shorthand description of what the command does. Used in help output.
+	Usage string
+
+	// Description is a long elaboration on what the command does. Used in help output.
 	Description string
-	Options     []*Option
-	Arguments   []*Argument
-	Call        reflect.Value
+
+	// Options contain all the registered options of the command.
+	Options []*Option
+
+	// Arguments contain all the registered arguments of the command.
+	Arguments []*Argument
+
+	// Call holds reflections of the callback.
+	Call reflect.Value
 }
 
-// DefaultOptions are prepended to any newly created command
+// DefaultHelpOption is the "--help" option, which is (per default) added to any command.
 var DefaultHelpOption = &Option{
 	parameter: parameter{
 		Name:        "help",
@@ -38,7 +55,7 @@ var DefaultHelpOption = &Option{
 // DefaultOptions are prepended to any newly created command
 var DefaultOptions = []*Option{DefaultHelpOption}
 
-// NewCommand constructs new command
+// NewCommand constructs a new command
 func NewCommand(name, usage string, call CallMethod) *Command {
 	ref := reflect.ValueOf(call)
 	if ref.Kind() != reflect.Func {
@@ -53,19 +70,19 @@ func NewCommand(name, usage string, call CallMethod) *Command {
 	}
 }
 
-// SetDescription is builder method setting desciption
+// SetCli is builder method and sets the Cli back-reference
 func (this *Command) SetCli(c *Cli) *Command {
 	this.Cli = c
 	return this
 }
 
-// SetDescription is builder method setting desciption
+// SetDescription is builder method setting description
 func (this *Command) SetDescription(desc string) *Command {
 	this.Description = desc
 	return this
 }
 
-// Parse command line args to argument
+// Parse extracts options and arguments from command line arguments
 func (this *Command) Parse(args []string) error {
 	argNum := 0
 	var lastArg *Argument
@@ -130,7 +147,9 @@ func (this *Command) Parse(args []string) error {
 
 	for _, a := range this.Arguments {
 		if len(a.Values) == 0 && a.Default != "" {
-			a.Values = []string{a.Default}
+			if err := a.Assign(a.Default); err != nil {
+				return err
+			}
 		}
 		if a.Required && len(a.Values) == 0 {
 			return fmt.Errorf("Argument \"%s\" is required but missing", a.Name)
@@ -138,7 +157,9 @@ func (this *Command) Parse(args []string) error {
 	}
 	for _, o := range this.Options {
 		if len(o.Values) == 0 && o.Default != "" {
-			o.Values = []string{o.Default}
+			if err := o.Assign(o.Default); err != nil {
+				return err
+			}
 		}
 		if o.Required && len(o.Values) == 0 {
 			return fmt.Errorf("Option \"%s\" is required but missing", o.Name)
@@ -148,7 +169,7 @@ func (this *Command) Parse(args []string) error {
 	return nil
 }
 
-// AddArgument is builder method to add a new argument
+// NewArgument is builder method to construct and add a new argument
 func (this *Command) NewArgument(name, usage, _default string, required, multiple bool) *Command {
 	return this.AddArgument(NewArgument(name, usage, _default, required, multiple))
 }
@@ -176,7 +197,7 @@ func (this *Command) AddArgument(v *Argument) *Command {
 	return this
 }
 
-// AddOption is builder method to add a new option
+// NewOption is builder method to construct and add a new option
 func (this *Command) NewOption(name, alias, usage, _default string, required, multiple bool) *Command {
 	return this.AddOption(NewOption(name, alias, usage, _default, required, multiple))
 }
@@ -198,6 +219,7 @@ func (this *Command) AddOption(v *Option) *Command {
 	return this
 }
 
+// Argument provides access to registered, named arguments.
 func (this *Command) Argument(name string) *Argument {
 	for _, a := range this.Arguments {
 		if a.Name == name {
@@ -207,6 +229,7 @@ func (this *Command) Argument(name string) *Argument {
 	return nil
 }
 
+// Option provides access to registered, named options.
 func (this *Command) Option(name string) *Option {
 	for _, o := range this.Options {
 		if o.Name == name || o.Alias == name {
@@ -216,6 +239,7 @@ func (this *Command) Option(name string) *Option {
 	return nil
 }
 
+// Input returns map containing whole input values (of all options, all arguments)
 func (this *Command) Input() map[string][]string {
 	res := make(map[string][]string)
 	for _, o := range this.Options {

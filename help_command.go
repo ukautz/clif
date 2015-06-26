@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// CommandSort implements the `sort.Sortable` interface for commands, based on
+// the command `Name` attribute
 type CommandsSort []*Command
 
 func (this CommandsSort) Len() int {
@@ -22,6 +24,7 @@ func (this CommandsSort) Less(i, j int) bool {
 	return this[i].Name < this[j].Name
 }
 
+// NewHelpCommand returns the default help command
 func NewHelpCommand() *Command {
 	return NewCommand("help", "Show this help", func(o *Command, out Output) {
 		if n := o.Argument("command").String(); n != "" {
@@ -37,6 +40,8 @@ func NewHelpCommand() *Command {
 	}).NewArgument("command", "Command to show help for", "", false, false)
 }
 
+// DescribeCommand implements the string rendering of a command which help uses.
+// Can be overwritten at users discretion.
 var DescribeCommand = func(c *Command) string {
 	lines := []string{"Command: <headline>" + c.Name + "<reset>"}
 
@@ -125,6 +130,8 @@ var DescribeCommand = func(c *Command) string {
 	return strings.Join(lines, "\n") + "\n"
 }
 
+// DescribeCli command implements the string rendering of a cli which help uses.
+// Can be overwritten at users discretion.
 var DescribeCli = func(c *Cli) string {
 
 	// name + version
