@@ -18,11 +18,8 @@ Arguments are fixed positioned, meaning their order does matter. Options
 
 */
 
-// ParserMethod is type for callback used to transform user input
-type ParserMethod func(name, value string) (string, error)
-
-// ValidatorMethod is type for callback used to check user input
-type ValidatorMethod func(name, value string) error
+// SetupMethod is type for callback on Setup of Argument or Option
+type SetupMethod func(name, value string) (string, error)
 
 // parameter is core for Argument and Option
 type parameter struct {
@@ -49,121 +46,14 @@ type parameter struct {
 	// Value holds what was provided on the command line
 	Values []string
 
-	// Parser is optional callback, which is applied on parameter values
-	// after they are validated. It can be used to transform user provided
-	// inputs. Mind that inputs can be multiple and it will be called for each
-	// of those multiple inputs.
-	Parser ParserMethod
+	// Setup is optional callback, which is applied on parameter values
+	// they are assigned. It can be used to validate, transform or otherwise
+	// utilize user provided inputs. Mind that inputs can be multiple and it
+	// will be called for each of those multiple inputs.
+	Setup SetupMethod
 
 	// Regex for checking if input value can be accepted
 	Regex *regexp.Regexp
-
-	// Validator is optional callback to check/validate the user provided input.
-	// Errors will be delegated back to the user.
-	Validator ValidatorMethod
-}
-
-
-// Arguments must be provided immediately after the command in the order they were
-// added. Non required arguments must be ordered after required arguments. Only
-// one argument is allowed to contain multiple values and it needs to be the last one.
-type Argument struct {
-	parameter
-}
-
-// NewArgument constructs a new argument
-func NewArgument(name, usage, _default string, required, multiple bool) *Argument {
-	return &Argument{
-		parameter: parameter{
-			Name:     name,
-			Usage:    usage,
-			Required: required,
-			Multiple: multiple,
-			Default:  _default,
-		},
-	}
-}
-
-// Option is a user input which is initialized with a single or double dash
-// (eg "--foo" or "-f"). It may not be followed by a value, in which case it
-// is considered a flag (see `IsFlag`). Options can be multiple inputs (no
-// restrictions as there are for Arguments). An option can be required or optional.
-// Options do not need to have any particular order.
-type Option struct {
-	parameter
-
-	// Alias can be a shorter name
-	Alias string
-
-	// If is a flag, then no value can be assigned (if present, then bool true)
-	Flag bool
-}
-
-// NewOption contstructs new option
-func NewOption(name, alias, usage, _default string, required, multiple bool) *Option {
-	return &Option{
-		parameter: parameter{
-			Name:     name,
-			Usage:    usage,
-			Required: required,
-			Multiple: multiple,
-			Default:  _default,
-		},
-		Alias: alias,
-	}
-}
-
-// IsFlag marks an option as a flag. A Flag does not have any values. If it
-// exists (eg "--verbose"), then it is automatically initialized with the string
-// "true", which then can be checked with the `Bool()` method for actual `bool`
-func (this *Option) IsFlag() *Option {
-	this.Flag = true
-	return this
-}
-
-/*
----------------------
-Builder
----------------------
-*/
-
-// SetUsage is a builder method to set usage. Usage is a shorthand description
-// which is used in help generation.
-func (this *parameter) SetUsage(v string) *parameter {
-	this.Usage = v
-	return this
-}
-
-// SetDescription is a builder method to set description. Description is an
-// elaborate explanation which is used in help generation.
-func (this *parameter) SetDescription(v string) *parameter {
-	this.Description = v
-	return this
-}
-
-// SetDefault is a builder method to set default value. Default value is used
-// if the parameter is not provided.
-func (this *parameter) SetDefault(v string) *parameter {
-	this.Default = v
-	return this
-}
-
-// SetDefault is a builder method to set default value
-func (this *parameter) SetParser(v ParserMethod) *parameter {
-	this.Parser = v
-	return this
-}
-
-// SetDefault is a builder method to set default value
-func (this *parameter) SetRegex(r *regexp.Regexp) *parameter {
-	this.Regex = r
-	return this
-}
-
-// SetDefault is a builder method to set default value
-func (this *parameter) SetValidator(v ValidatorMethod) *parameter {
-	this.Validator = v
-	return this
 }
 
 /*
@@ -193,16 +83,11 @@ func (this *parameter) Assign(val string) error {
 		if this.Regex != nil && !this.Regex.MatchString(val) {
 			return fmt.Errorf(print("Does not match criteria"))
 		}
-		if this.Validator != nil {
-			if err := this.Validator(this.Name, val); err != nil {
-				return fmt.Errorf(print(err.Error()))
-			}
-		}
-		if this.Parser != nil {
-			if p, err := this.Parser(this.Name, val); err != nil {
+		if this.Setup != nil {
+			if replace, err := this.Setup(this.Name, val); err != nil {
 				return fmt.Errorf(print(err.Error()))
 			} else {
-				val = p
+				val = replace
 			}
 		}
 		this.Values = append(this.Values, val)

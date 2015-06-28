@@ -6,46 +6,49 @@ import (
 )
 
 // IsAny joins a set of validator methods and returns true if ANY of them matches
-func IsAny(v ...ValidatorMethod) ValidatorMethod {
-	return func(name, value string) error {
+func IsAny(v ...SetupMethod) SetupMethod {
+	return func(name, value string) (string, error) {
 		var err error
+		replace := value
 		for _, c := range v {
-			if err = c(name, value); err == nil {
-				return nil
+			if replace, err = c(name, replace); err == nil {
+				return replace, nil
 			}
 		}
-		return err
+		return "", err
 	}
 }
 
 // IsAll joins a set of validators methods and returns true if ALL of them match
-func IsAll(v ...ValidatorMethod) ValidatorMethod {
-	return func(name, value string) error {
+func IsAll(v ...SetupMethod) SetupMethod {
+	return func(name, value string) (string, error) {
+		var err error
+		replace := value
 		for _, c := range v {
-			if err := c(name, value); err != nil {
-				return err
+			if replace, err = c(name, replace); err != nil {
+				return "", err
 			}
 		}
-		return nil
+		return replace, nil
 	}
 }
 
 var rxIsInt = regexp.MustCompile(`^[1-9][0-9]*$`)
 
 // IsInt checks if value is an integer
-func IsInt(name, value string) error {
+func IsInt(name, value string) (string, error) {
 	if !rxIsInt.MatchString(value) {
-		return fmt.Errorf("Is not integer")
+		return "", fmt.Errorf("Is not integer")
 	}
-	return nil
+	return value, nil
 }
 
 var rxIsFloat = regexp.MustCompile(`^[0-9]+(?:\.[0-9]+)?$`)
 
 // IsFloat checks if value is float
-func IsFloat(name, value string) error {
+func IsFloat(name, value string) (string, error) {
 	if !rxIsFloat.MatchString(value) {
-		return fmt.Errorf("Is not float")
+		return "", fmt.Errorf("Is not float")
 	}
-	return nil
+	return value, nil
 }

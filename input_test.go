@@ -62,7 +62,9 @@ func TestDefaultInput(t *testing.T) {
 			wg.Wait()
 			So(res, ShouldEqual, "Bar")
 			So(bufOut.String(), ShouldEqual, `Foo? Not Bar!
+
 Foo? Not Bar!
+
 Foo? `)
 		})
 
@@ -90,7 +92,9 @@ Foo? `)
 			wg.Wait()
 			So(res, ShouldEqual, "Bar")
 			So(bufOut.String(), ShouldEqual, `Foo? Input does not match criteria
+
 Foo? Input does not match criteria
+
 Foo? `)
 		})
 
@@ -125,11 +129,13 @@ Foo? `)
   foo)     Foo!!!
   the bar) One bar please
 Choose: Choose one of: 42, foo, the bar
+
 Choose or loose!
   42)      Take that
   foo)     Foo!!!
   the bar) One bar please
 Choose: Choose one of: 42, foo, the bar
+
 Choose or loose!
   42)      Take that
   foo)     Foo!!!

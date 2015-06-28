@@ -46,7 +46,7 @@ func NewMonochromeOutput(io io.Writer) *DefaultOutput {
 
 // NewColoredOutput returns default output (on `os.Stdout`, if io is nil) using
 // a formatter which applies the default color styles to style tokens on output.
-func NewColoredOutput(io io.Writer) *DefaultOutput {
+func NewColorOutput(io io.Writer) *DefaultOutput {
 	return NewOutput(io, NewDefaultFormatter(DefaultStyles))
 }
 

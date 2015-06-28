@@ -63,15 +63,15 @@ var DescribeCommand = func(c *Command) string {
 		short = p.Name
 		if p.Multiple {
 			short = short + " ..."
-			usg += " (mult)"
+			usg += " <info>(mult)<reset>"
 		}
 		if p.Required {
-			usg += " (req)"
+			usg += " <info>(req)<reset>"
 		} else {
 			short = fmt.Sprintf("[%s]", short)
 		}
 		if p.Default != "" {
-			usg += fmt.Sprintf(" (default: \"%s\")", p.Default)
+			usg += fmt.Sprintf(" <debug>(default: \"%s\")<reset>", p.Default)
 		}
 		if l := len(p.Name); l > argMax {
 			argMax = l

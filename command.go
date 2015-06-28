@@ -52,7 +52,9 @@ var DefaultHelpOption = &Option{
 	Flag:  true,
 }
 
-// DefaultOptions are prepended to any newly created command
+// DefaultOptions are prepended to any newly created command. Will be added
+// immediately in the `NewCommand` call. See also `cli.NewDefaultOption()` and
+// `cli.AddDefaultOptions()`.
 var DefaultOptions = []*Option{DefaultHelpOption}
 
 // NewCommand constructs a new command

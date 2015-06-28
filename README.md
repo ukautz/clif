@@ -81,7 +81,65 @@ $ ./app other
 
 ### Callback functions
 
-Callback functions can have arbitrary parameters. CLIF uses a small, built-in dependency injection container which allows you to register any kind of object (`struct` or `interface`) beforehand.
+Callback functions can have arbitrary parameters. CLIF uses a small, built-in callback injection container which allows you to register any kind of object (`struct` or `interface`) beforehand.
+
+```go
+// Some type definition
+type MyFoo struct {
+    X int
+}
+
+// register object instance with container
+foo := &MyFoo{X: 123}
+cli.Register(foo)
+
+// Register command with callback using the type
+cli.NewCommand("foo", "Call foo", func (foo *MyFoo) {
+    // do something with foo
+})
+```
+
+Using interfaces is possible as well, but a bit less elegant:
+
+```go
+// Some type definition
+type MyBar interface {
+    Bar() string
+}
+
+// create object, which implements MyBar:
+foo := &MyFoo{}
+t := reflect.TypeOf((*MyBar)(nil)).Elem()
+cli.RegisterAs(t.String(), foo)
+
+// Register command with callback using the type
+cli.NewCommand("bar", "Call bar", func (bar MyBar) {
+    // do something with bar
+})
+```
+
+#### Named
+
+This works great if you only have a single instance of any object of a specific type.
+However, if you need more than one instance (which might often be the case for primitive
+types, such as `int` or `string`) you can use named registering:
+
+```go
+// Register abitrary objects under unique name
+cli.RegisterNamed("foo", new(MyFoo)).
+    RegisterNamed("bar", 123).
+    RegisterNamed("baz", "bla")
+
+// Register command with callback named container
+cli.NewCommand("bar", "Call bar", func (named map[string]interface{}) {
+    fmt.Println(named["baz"].(string))
+})
+```
+
+**Note**: If you want to use the named feature, you cannot `Register()` any `map[string]interface{}`, since
+"normally" registered objects are evaluated before named.
+
+#### Default objects
 
 CLIF pre-populates the dependency container with a couple of built-in objects:
 
@@ -89,57 +147,6 @@ CLIF pre-populates the dependency container with a couple of built-in objects:
 * The `Input` (input helper, see below)
 * The `*Cli` instance itself
 * The current `*Command` instance
-
-``` go
-package main
-
-import "gopkg.in/ukautz/clif.v0"
-
-type MyFoo struct {}
-
-// ... MyFoo implementation
-
-func callMe(out clif.Output, foo *MyFoo) {
-	out.Printf("Foo: %s\n", foo)
-}
-
-func main() {
-	cli := clif.New("my-app", "My kewl App", "0.8.5").
-		New("call", "Call me", callMe).
-		Register(new(MyFoo))
-	cli.Run()
-}
-```
-
-If you want to register an `interface`, you need to use the Go'ish way:
-
-``` go
-package main
-
-import "gopkg.in/ukautz/clif.v0"
-
-// the interface
-type MyFoo interface {
-	Bar() string
-}
-
-// the struct implementing the interface
-type MyBar struct {}
-
-// ... MyBar implementation
-
-func callMe(out clif.Output, foo MyFoo) {
-	out.Printf("Foo: %s\n", foo)
-}
-
-func main() {
-	t := reflect.TypeOf((*MyFoo)(nil)).Elem()
-	cli := clif.New("my-app", "My kewl App", "0.8.5").
-		New("call", "Call me", callMe).
-		RegisterAs(t.String(), new(MyBar))
-	cli.Run()
-}
-```
 
 ### Arguments and Options
 
@@ -307,10 +314,53 @@ cli.SetOutput(clif.NewPlainOutput())
 
 To extend or change the fancy style, please modify `clif.DefaultStyles` in [formatter.go](formatter.go).
 
-Patterns
---------
+Patterns & Examples
+-------------------
 
-A pattern I employ when developing CLI applications
+Some patterns I employ which might make sense to others:
+
+### Default options - eg config file
+
+Assuming each/most of your commands require some global config, which needs to have
+an optional path. Eg: `my-app do-something --config /path/to/config.yml`.
+
+This can be solved using the `Setup` method of default options:
+
+```go
+// Some type for holding config
+type MyConfig struct {
+    Data map[string]interface{}
+}
+
+// init new cli app
+cli := clif.New("my-app", "1.2.3", "My app that does something")
+
+// register default option, which fills injection container with config instance
+configOpt := clif.NewOption("config", "c", "Path to config file", "/default/config/path.json", true, false).
+    SetSetup(function(name, value string) (string, error) {
+        if raw, err := ioutil.ReadFile(value); err != nil {
+            return "", fmt.Errorf("Could not read config file %s: %s", value, err)
+        } else if err = json.Unmarshal(raw, &conf.Data); err != nil {
+            return "", fmt.Errorf("Could not unmarshal config file %s: %s", value, err)
+        } else if _, ok := conf.Data["name"]; !ok {
+            return "", fmt.Errorf("Config %s is missing \"name\"", value)
+        } else {
+            cli.Register(conf)
+            return value, nil
+        }
+    })
+
+// register command, which uses config instance
+cli.New("foo", "Do foo", func(conf *MyConfig) {
+    if v, ok := conf.Data["foo"]; ok {
+        // ..
+    }
+}).NewOption("other", "o", "Other option", false, false)
+```
+
+### Structure
+
+I like a tidy structure, so I usually have an init-based setup. See [Repo](https://github.com/ukautz/repos) (a tool to keep track of changes in your repos) for an example. Especially the [main.go](https://github.com/ukautz/repos/main/main.go) and the command initialization in [commands.go](https://github.com/ukautz/repos/commands.go).
 
 See also
 --------

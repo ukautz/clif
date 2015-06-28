@@ -45,6 +45,10 @@ func NewDefaultInput(in io.Reader, out Output) *DefaultInput {
 	return &DefaultInput{in, out}
 }
 
+var RenderQuestion = func(question string) string {
+	return "<query>"+ strings.TrimRight(question, " ")+ "<reset> "
+}
+
 func (this *DefaultInput) Ask(question string, check func(string) error) string {
 	if check == nil {
 		check = func(in string) error {
@@ -57,7 +61,7 @@ func (this *DefaultInput) Ask(question string, check func(string) error) string 
 	}
 	reader := bufio.NewReader(this.in)
 	for {
-		this.out.Printf(question)
+		this.out.Printf(RenderQuestion(question))
 		if line, _, err := reader.ReadLine(); err != nil {
 			this.out.Printf("<warn>%s<reset>\n\n", err)
 		} else if err := check(string(line)); err != nil {
@@ -139,5 +143,17 @@ func (this *DefaultInput) Confirm(question string) bool {
 		} else {
 			this.out.Printf(ConfirmRejection)
 		}
+	}
+}
+
+func InputEmptyOk(s string) error {
+	return nil
+}
+
+func InputAny(s string) error {
+	if len(s) == 0 {
+		return fmt.Errorf("No input provided")
+	} else {
+		return nil
 	}
 }

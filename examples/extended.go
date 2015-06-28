@@ -3,10 +3,10 @@
 package main
 
 import (
-	"gopkg.in/ukautz/clif.v0"
-	"reflect"
-	"os"
 	"fmt"
+	"gopkg.in/ukautz/clif.v0"
+	"os"
+	"reflect"
 )
 
 type exampleInterface interface {
@@ -59,13 +59,23 @@ go run extended.go foo peter -w bla everybody -c=12 else
 	  Custom 2: bar1
 */
 
-func main() {
-	switch style := os.Getenv("STYLE"); style {
+func setStyle(style string, c *clif.Cli) {
+	switch style {
 	case "sunburn":
+		if c != nil {
+			c.Output().SetFormatter(clif.NewDefaultFormatter(clif.SunburnStyles))
+		}
 		clif.DefaultStyles = clif.SunburnStyles
 	case "winter":
+		if c != nil {
+			c.Output().SetFormatter(clif.NewDefaultFormatter(clif.WinterStyles))
+		}
 		clif.DefaultStyles = clif.WinterStyles
 	}
+}
+
+func main() {
+	setStyle(os.Getenv("CLI_STYLE"), nil)
 
 	// extend output styles
 	clif.DefaultStyles["mine"] = "\033[32;1m"
@@ -74,8 +84,11 @@ func main() {
 	c := clif.New("My App", "1.0.0", "An example application").
 		Register(&exampleStruct{"bar1"}).
 		RegisterAs(reflect.TypeOf((*exampleInterface)(nil)).Elem().String(), &exampleStruct{"bar2"}).
-		New("hello", "The obligatory hello world", callHello).
-		New("styles", "Print all color style tokens", callStyles)
+		New("hello", "The obligatory hello world", callHello)
+
+	styleArg := clif.NewArgument("style", "Name of a style. Available: default, sunburn, winter", "default", true, false).
+		SetSetup(func(name, value string) (string, error) { setStyle(value, c); return value, nil })
+	c.Add(clif.NewCommand("styles", "Print all color style tokens", callStyles).AddArgument(styleArg))
 
 	// customize error handler
 	clif.Die = func(msg string, args ...interface{}) {
@@ -89,7 +102,7 @@ func main() {
 		NewArgument("more-names", "And more names for greeting", "", false, true).
 		NewOption("whatever", "w", "Some required option", "", true, false)
 	cnt := clif.NewOption("counter", "c", "Show how high you can count", "", false, false)
-	cnt.SetValidator(clif.IsInt)
+	cnt.SetSetup(clif.IsInt)
 	cmd.AddOption(cnt)
 	c.Add(cmd)
 

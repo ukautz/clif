@@ -20,13 +20,13 @@ type DefaultFormatter struct {
 var DefaultStyles = map[string]string{
 	"error":     "\033[31;1m",
 	"warn":      "\033[33m",
-	"info":      "\033[36m",
+	"info":      "\033[34m",
 	"success":   "\033[32m",
 	"debug":     "\033[30;1m",
 	"headline":  "\033[4;1m",
 	"subline":   "\033[4m",
 	"important": "\033[47;30;1m",
-	"query":     "\033[34m",
+	"query":     "\033[36m",
 	"reset":     "\033[0m",
 }
 

@@ -27,6 +27,7 @@ func TestCliRun(t *testing.T) {
 		Die = func(msg string, args ...interface{}) {
 			panic(fmt.Sprintf(msg, args...))
 		}
+		namedActual := make(map[string]interface{})
 
 		c := New("foo", "1.0.0", "").
 			New("bar", "", func(c *Cli, o *Command) error {
@@ -48,6 +49,12 @@ func TestCliRun(t *testing.T) {
 			New("errme", "", func() error {
 			return fmt.Errorf("I error!")
 		}).
+			New("named", "", func(named map[string]interface{}) {
+			namedActual = named
+		}).
+			New("named2", "", func(x testCliAlias, named map[string]interface{}, y *testCliInject) {
+			namedActual = named
+		}).
 			Register(&testCliInject{
 			Foo: 100,
 		}).
@@ -57,8 +64,8 @@ func TestCliRun(t *testing.T) {
 
 		cmdInvalid := NewCommand("bla", "Dont use me", func() {})
 		argInvalid := NewArgument("something", "..", "", false, false)
-		argInvalid.SetValidator(func(name, value string) error {
-			return fmt.Errorf("Never works!")
+		argInvalid.SetSetup(func(name, value string) (string, error) {
+			return "", fmt.Errorf("Never works!")
 		})
 		cmdInvalid.AddArgument(argInvalid)
 		c.Add(cmdInvalid)
@@ -77,6 +84,18 @@ func TestCliRun(t *testing.T) {
 			c.RunWith([]string{"zoing2"})
 			So(handledErr, ShouldBeNil)
 			So(called, ShouldEqual, 200)
+		})
+		Convey("Run existing method with named parameters", func() {
+			c.RegisterNamed("foo", "bar")
+			c.RegisterNamed("baz", 213)
+			c.RunWith([]string{"named"})
+			So(namedActual, ShouldResemble, map[string]interface{}{"foo": "bar", "baz": 213})
+		})
+		Convey("Run existing method with named parameters on arbitrary position", func() {
+			c.RegisterNamed("foo", "bar")
+			c.RegisterNamed("baz", 213)
+			c.RunWith([]string{"named2"})
+			So(namedActual, ShouldResemble, map[string]interface{}{"foo": "bar", "baz": 213})
 		})
 		Convey("Run not existing method", func() {
 			So(func() {
@@ -132,3 +151,4 @@ func TestCliConstruction(t *testing.T) {
 		})
 	})
 }
+

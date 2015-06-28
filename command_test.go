@@ -23,11 +23,11 @@ func _testInitCommand() *Command {
 				parameter: parameter{
 					Name:     "bar",
 					Multiple: true,
-					Validator: func(name, value string) error {
+					Setup: func(name, value string) (string, error) {
 						if strings.Index(value, "B") == -1 {
-							return fmt.Errorf("Missing B")
+							return "", fmt.Errorf("Missing B")
 						} else {
-							return nil
+							return value, nil
 						}
 					},
 				},

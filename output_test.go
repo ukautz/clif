@@ -22,7 +22,7 @@ func TestOutput(t *testing.T) {
 	})
 	Convey("Fancy output rendering", t, func() {
 		b := bytes.NewBuffer(nil)
-		o := NewColoredOutput(b)
+		o := NewColorOutput(b)
 		o.Printf("With <headline>formatted<reset> input")
 		So(b.String(), ShouldEqual, "With \033[4;1mformatted\033[0m input")
 	})
