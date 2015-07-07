@@ -18,14 +18,18 @@ Arguments are fixed positioned, meaning their order does matter. Options
 
 */
 
-// SetupMethod is type for callback on Setup of Argument or Option
-type SetupMethod func(name, value string) (string, error)
+// SetupMethod is type for callback on Setup of Argument or Option. The return
+// string replaces the original input. Called on each value (in case of multiple).
+type ParseMethod func(name, value string) (string, error)
 
 // parameter is core for Argument and Option
 type parameter struct {
 
 	// Name is used for describing and accessing this argument
 	Name string
+
+	// Value holds what was provided on the command line
+	Values []string
 
 	// Usage is a short description of this argument
 	Usage string
@@ -43,14 +47,15 @@ type parameter struct {
 	// Default is used if no value is provided
 	Default string
 
-	// Value holds what was provided on the command line
-	Values []string
+	// Optional environment variable name, which is used in case not provided (overwrites
+	// any default)
+	Env string
 
-	// Setup is optional callback, which is applied on parameter values
+	// Parse is optional callback, which is applied on parameter values
 	// they are assigned. It can be used to validate, transform or otherwise
 	// utilize user provided inputs. Mind that inputs can be multiple and it
 	// will be called for each of those multiple inputs.
-	Setup SetupMethod
+	Parse ParseMethod
 
 	// Regex for checking if input value can be accepted
 	Regex *regexp.Regexp
@@ -83,8 +88,8 @@ func (this *parameter) Assign(val string) error {
 		if this.Regex != nil && !this.Regex.MatchString(val) {
 			return fmt.Errorf(print("Does not match criteria"))
 		}
-		if this.Setup != nil {
-			if replace, err := this.Setup(this.Name, val); err != nil {
+		if this.Parse != nil {
+			if replace, err := this.Parse(this.Name, val); err != nil {
 				return fmt.Errorf(print(err.Error()))
 			} else {
 				val = replace

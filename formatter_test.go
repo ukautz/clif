@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestName(t *testing.T) {
+func TestDefaultFormatterFormat(t *testing.T) {
 	Convey("Formatting output", t, func() {
 		Convey("Formatting with stripped directives", func() {
 			f := NewDefaultFormatter(nil)
@@ -31,6 +31,21 @@ func TestName(t *testing.T) {
 			})
 			s := f.Format("Foo <headline>bar<reset> <baz> boing")
 			So(s, ShouldEqual, "Foo <headline>bar<reset> BAZ boing")
+		})
+	})
+}
+
+func TestDefaultFormatterEscape(t *testing.T) {
+	Convey("Escapinng output", t, func() {
+		Convey("Escaping tokens", func() {
+			f := NewDefaultFormatter(nil)
+			s := f.Escape("Foo <headline>bar<reset> baz")
+			So(s, ShouldEqual, "Foo \\<headline>bar\\<reset> baz")
+		})
+		Convey("Escaping already escaped tokens does nothing", func() {
+			f := NewDefaultFormatter(nil)
+			s := f.Escape("Foo \\<headline>bar\\<reset> baz")
+			So(s, ShouldEqual, "Foo \\<headline>bar\\<reset> baz")
 		})
 	})
 }

@@ -9,6 +9,9 @@ import (
 // Output is interface for
 type Output interface {
 
+	// Escape escapes a string, so that no formatter tokens will be interpolated (eg `<foo>` -> `\<foo>`)
+	Escape(s string) string
+
 	// Printf applies format (renders styles) and writes to output
 	Printf(msg string, args ...interface{})
 
@@ -53,6 +56,10 @@ func NewColorOutput(io io.Writer) *DefaultOutput {
 func (this *DefaultOutput) SetFormatter(f Formatter) Output {
 	this.fmt = f
 	return this
+}
+
+func (this *DefaultOutput) Escape(msg string) string {
+	return this.fmt.Escape(msg)
 }
 
 func (this *DefaultOutput) Printf(msg string, args ...interface{}) {

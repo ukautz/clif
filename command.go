@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"os"
 )
 
 var (
@@ -148,27 +149,46 @@ func (this *Command) Parse(args []string) error {
 	}
 
 	for _, a := range this.Arguments {
-		if len(a.Values) == 0 && a.Default != "" {
-			if err := a.Assign(a.Default); err != nil {
-				return err
-			}
-		}
-		if a.Required && len(a.Values) == 0 {
-			return fmt.Errorf("Argument \"%s\" is required but missing", a.Name)
+		if err := this.postSetupParam(a, "Argument"); err != nil {
+			return err
 		}
 	}
 	for _, o := range this.Options {
-		if len(o.Values) == 0 && o.Default != "" {
-			if err := o.Assign(o.Default); err != nil {
-				return err
-			}
-		}
-		if o.Required && len(o.Values) == 0 {
-			return fmt.Errorf("Option \"%s\" is required but missing", o.Name)
+		if err := this.postSetupParam(o, "Option"); err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func (this *Command) postSetupParam(x interface{}, t string) error {
+	var p *parameter
+	if a, ok := x.(*Argument); ok {
+		p = &(a.parameter)
+	} else {
+		p = &(x.(*Option).parameter)
+	}
+
+	if len(p.Values) == 0 {
+		v := ""
+		if p.Env != "" {
+			v = os.Getenv(p.Env)
+		}
+		if v == "" && p.Default != "" {
+			v = p.Default
+		}
+		if v != "" {
+			if err := p.Assign(v); err != nil {
+				return err
+			}
+		}
+	}
+	if p.Required && p.Count() == 0 {
+		return fmt.Errorf("%s \"%s\" is required but missing", t, p.Name)
+	} else {
+		return nil
+	}
 }
 
 // NewArgument is builder method to construct and add a new argument

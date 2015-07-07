@@ -45,7 +45,7 @@ func NewDefaultInput(in io.Reader, out Output) *DefaultInput {
 	return &DefaultInput{in, out}
 }
 
-var RenderQuestion = func(question string) string {
+var RenderAskQuestion = func(question string) string {
 	return "<query>"+ strings.TrimRight(question, " ")+ "<reset> "
 }
 
@@ -61,7 +61,7 @@ func (this *DefaultInput) Ask(question string, check func(string) error) string 
 	}
 	reader := bufio.NewReader(this.in)
 	for {
-		this.out.Printf(RenderQuestion(question))
+		this.out.Printf(RenderAskQuestion(question))
 		if line, _, err := reader.ReadLine(); err != nil {
 			this.out.Printf("<warn>%s<reset>\n\n", err)
 		} else if err := check(string(line)); err != nil {
@@ -130,15 +130,19 @@ func (this *DefaultInput) Choose(question string, choices map[string]string) str
 // with "yes", "y", "no" or "n" (case insensitive)
 var ConfirmRejection = "<warn>Please respond with \"yes\" or \"no\"<reset>\n\n"
 
+// ConfirmYesRegex is the regular expression used to check if the user replied positive
+var ConfirmYesRegex = regexp.MustCompile(`^(?i)y(es)?$`)
+
+// ConfirmNoRegex is the regular expression used to check if the user replied negative
+var ConfirmNoRegex = regexp.MustCompile(`^(?i)no?$`)
+
 func (this *DefaultInput) Confirm(question string) bool {
-	rxYes := regexp.MustCompile(`^(?i)y(es)?$`)
-	rxNo := regexp.MustCompile(`^(?i)no?$`)
 	cb := func(value string) error {return nil}
 	for {
 		res := this.Ask(question, cb)
-		if rxYes.MatchString(res) {
+		if ConfirmYesRegex.MatchString(res) {
 			return true
-		} else if rxNo.MatchString(res) {
+		} else if ConfirmNoRegex.MatchString(res) {
 			return false
 		} else {
 			this.out.Printf(ConfirmRejection)

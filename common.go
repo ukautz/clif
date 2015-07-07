@@ -10,7 +10,11 @@ import (
 // exit handling CLI-wide.
 var Die = func(msg string, args ...interface{}) {
 	NewColorOutput(os.Stderr).Printf("<error>"+ msg+"<reset>\n", args...)
-	os.Exit(1)
+	Exit(1)
+}
+
+var Exit = func(s int) {
+	os.Exit(s)
 }
 
 func clone(v interface{}) interface{} {

@@ -87,13 +87,13 @@ func main() {
 		New("hello", "The obligatory hello world", callHello)
 
 	styleArg := clif.NewArgument("style", "Name of a style. Available: default, sunburn, winter", "default", true, false).
-		SetSetup(func(name, value string) (string, error) { setStyle(value, c); return value, nil })
+		SetParse(func(name, value string) (string, error) { setStyle(value, c); return value, nil })
 	c.Add(clif.NewCommand("styles", "Print all color style tokens", callStyles).AddArgument(styleArg))
 
 	// customize error handler
 	clif.Die = func(msg string, args ...interface{}) {
 		c.Output().Printf("<error>Everyting went wrong: %s<reset>\n\n", fmt.Sprintf(msg, args...))
-		os.Exit(1)
+		clif.Exit(1)
 	}
 
 	// build & add a complex command
@@ -102,7 +102,7 @@ func main() {
 		NewArgument("more-names", "And more names for greeting", "", false, true).
 		NewOption("whatever", "w", "Some required option", "", true, false)
 	cnt := clif.NewOption("counter", "c", "Show how high you can count", "", false, false)
-	cnt.SetSetup(clif.IsInt)
+	cnt.SetParse(clif.IsInt)
 	cmd.AddOption(cnt)
 	c.Add(cmd)
 

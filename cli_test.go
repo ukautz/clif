@@ -27,6 +27,9 @@ func TestCliRun(t *testing.T) {
 		Die = func(msg string, args ...interface{}) {
 			panic(fmt.Sprintf(msg, args...))
 		}
+		Exit = func(s int) {
+			panic(fmt.Sprintf("Exit %d", s))
+		}
 		namedActual := make(map[string]interface{})
 
 		c := New("foo", "1.0.0", "").
@@ -49,11 +52,11 @@ func TestCliRun(t *testing.T) {
 			New("errme", "", func() error {
 			return fmt.Errorf("I error!")
 		}).
-			New("named", "", func(named map[string]interface{}) {
-			namedActual = named
+			New("named", "", func(named NamedParameters) {
+			namedActual = map[string]interface{}(named)
 		}).
-			New("named2", "", func(x testCliAlias, named map[string]interface{}, y *testCliInject) {
-			namedActual = named
+			New("named2", "", func(x testCliAlias, named NamedParameters, y *testCliInject) {
+			namedActual = map[string]interface{}(named)
 		}).
 			Register(&testCliInject{
 			Foo: 100,
@@ -64,7 +67,7 @@ func TestCliRun(t *testing.T) {
 
 		cmdInvalid := NewCommand("bla", "Dont use me", func() {})
 		argInvalid := NewArgument("something", "..", "", false, false)
-		argInvalid.SetSetup(func(name, value string) (string, error) {
+		argInvalid.SetParse(func(name, value string) (string, error) {
 			return "", fmt.Errorf("Never works!")
 		})
 		cmdInvalid.AddArgument(argInvalid)

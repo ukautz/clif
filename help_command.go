@@ -63,12 +63,15 @@ var DescribeCommand = func(c *Command) string {
 		short = p.Name
 		if p.Multiple {
 			short = short + " ..."
-			usg += " <info>(mult)<reset>"
+			usg += " <debug>(mult)<reset>"
 		}
 		if p.Required {
-			usg += " <info>(req)<reset>"
+			usg += " <important>(req)<reset>"
 		} else {
 			short = fmt.Sprintf("[%s]", short)
+		}
+		if p.Env != "" {
+			usg += fmt.Sprintf(" <debug>(env: \"%s\")<reset>", p.Env)
 		}
 		if p.Default != "" {
 			usg += fmt.Sprintf(" <debug>(default: \"%s\")<reset>", p.Default)
@@ -93,14 +96,17 @@ var DescribeCommand = func(c *Command) string {
 		if !p.Required {
 			short = "[" + short + "]"
 		} else {
-			usg += " (req)"
+			usg += " <important>(req)<reset>"
 		}
 		if p.Multiple {
 			short = short + " ..."
-			usg += " (mult)"
+			usg += " <debug>(mult)<reset>"
+		}
+		if p.Env != "" {
+			usg += fmt.Sprintf(" <debug>(env: \"%s\")<reset>", p.Env)
 		}
 		if p.Default != "" {
-			usg += fmt.Sprintf(" (default: \"%s\")", p.Default)
+			usg += fmt.Sprintf(" <debug>(default: \"%s\")<reset>", p.Default)
 		}
 		if l := len(long); l > optMax {
 			optMax = l

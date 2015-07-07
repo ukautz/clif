@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"os"
 )
 
 func _testInitCommand() *Command {
@@ -23,7 +24,7 @@ func _testInitCommand() *Command {
 				parameter: parameter{
 					Name:     "bar",
 					Multiple: true,
-					Setup: func(name, value string) (string, error) {
+					Parse: func(name, value string) (string, error) {
 						if strings.Index(value, "B") == -1 {
 							return "", fmt.Errorf("Missing B")
 						} else {
@@ -247,7 +248,7 @@ func TestCommandParse(t *testing.T) {
 
 func TestCommandParseFallsBackToDefaults(t *testing.T) {
 	Convey("Parse commands with default values for options and/or arguments", t, func() {
-		c := NewCommand("command", "Usage", func(){}).
+		c := NewCommand("command", "Usage", func() {}).
 			NewArgument("foo", "For fooing", "FOO", true, false).
 			NewOption("bar", "b", "For baring", "BAR", true, false)
 		Convey("Missing required argument defaults", func() {
@@ -259,6 +260,26 @@ func TestCommandParseFallsBackToDefaults(t *testing.T) {
 			err := c.Parse([]string{})
 			So(err, ShouldBeNil)
 			So(c.Option("bar").String(), ShouldEqual, "BAR")
+		})
+	})
+}
+
+func TestCommandParseFallsBackToEnvBeforeDefault(t *testing.T) {
+	Convey("Parse commands with default values for options and/or arguments", t, func() {
+		os.Setenv("the_foo", "FOO_ENV")
+		os.Setenv("the_bar", "BAR_ENV")
+		c := NewCommand("command", "Usage", func() {}).
+			AddArgument(NewArgument("foo", "For fooing", "FOO", true, false).SetEnv("the_foo")).
+			AddOption(NewOption("bar", "b", "For baring", "BAR", true, false).SetEnv("the_bar"))
+		Convey("Missing required argument defaults", func() {
+			err := c.Parse([]string{})
+			So(err, ShouldBeNil)
+			So(c.Argument("foo").String(), ShouldEqual, "FOO_ENV")
+		})
+		Convey("Missing required option defaults", func() {
+			err := c.Parse([]string{})
+			So(err, ShouldBeNil)
+			So(c.Option("bar").String(), ShouldEqual, "BAR_ENV")
 		})
 	})
 }

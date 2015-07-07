@@ -15,7 +15,7 @@ func TestDescribeCommand(t *testing.T) {
 
 		c.NewOption("boing", "b", "The boing!", "", true, false).
 			NewOption("zoing", "z", "The ZOING!", "", false, true)
-		c.Option("zoing").IsFlag()
+		c.Option("zoing").IsFlag().SetEnv("THE_ZOING")
 
 		s := DescribeCommand(c)
 		expect := `Command: <headline>foo<reset>
@@ -25,13 +25,13 @@ func TestDescribeCommand(t *testing.T) {
   foo bar [baz ...] [--help|-h] --boing|-b val [--zoing|-z] ...
 
 <subline>Arguments:<reset>
-  <info>bar<reset>  The bar (req)
-  <info>baz<reset>  The baz (mult)
+  <info>bar<reset>  The bar <important>(req)<reset>
+  <info>baz<reset>  The baz <debug>(mult)<reset>
 
 <subline>Options:<reset>
   <info>--help|-h     <reset>  Display this help message
-  <info>--boing|-b val<reset>  The boing! (req)
-  <info>--zoing|-z    <reset>  The ZOING! (mult)
+  <info>--boing|-b val<reset>  The boing! <important>(req)<reset>
+  <info>--zoing|-z    <reset>  The ZOING! <debug>(mult)<reset> <debug>(env: "THE_ZOING")<reset>
 
 `
 		So(s, ShouldEqual, expect)

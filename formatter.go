@@ -3,10 +3,14 @@ package clif
 import (
 	"regexp"
 	"strings"
+	"fmt"
 )
 
 // Formatter is used by Output for rendering. It supports style directives in the form <info> or <end> or suchlike
 type Formatter interface {
+
+	// Escape escapes a string, so that no formatter tokens will be interpolated (eg `<foo>` -> `\<foo>`)
+	Escape(msg string) string
 
 	// Format renders message for output by applying <style> tokens
 	Format(msg string) string
@@ -63,14 +67,40 @@ func NewDefaultFormatter(styles map[string]string) *DefaultFormatter {
 	return &DefaultFormatter{styles}
 }
 
+// DefaultFormatterTokenRegex is a regex to find all tokens, used by the DefaultFormatter
+var DefaultFormatterTokenRegex = regexp.MustCompile(`(<[^>]+>)`)
+
+// DefaultFormatterPre is a pre-callback, before DefaultFormatterTokenRegex is used
+var DefaultFormatterPre = func(msg string) string {
+	return strings.Replace(msg, `\<`, "~~~~#~~~~", -1)
+}
+
+// DefaultFormatterPost is a post-callback, after DefaultFormatterTokenRegex is used
+var DefaultFormatterPost = func(msg string) string {
+	return strings.Replace(msg, "~~~~#~~~~", "<", -1)
+}
+
+// DefaultFormatterEscape is a callback to replace all tokens with escaped versions
+var DefaultFormatterEscape = func(msg string) string {
+	return DefaultFormatterTokenRegex.ReplaceAllStringFunc(msg, func(token string) string {
+		return `\` + token
+	})
+}
+
+func (this *DefaultFormatter) Escape(msg string) string {
+	msg = DefaultFormatterPre(msg)
+	msg = DefaultFormatterEscape(msg)
+	msg = strings.Replace(msg, "~~~~#~~~~", "\\<", -1)
+	return msg
+}
+
 func (this *DefaultFormatter) Format(msg string) string {
 	// Since Go regexp does not implement lock-behinds: using a multi-pass approach
 	// to first replace all escaped style tokens (\<token>) with string, which is
 	// rather unlikely to occur, then replacing style tokens with color control
 	// characters and then re-replacing the placeholder strings back
-	msg = strings.Replace(msg, `\<`, "~~~~#~~~~", -1)
-	rxToken := regexp.MustCompile(`(<[^>]+>)`)
-	msg = rxToken.ReplaceAllStringFunc(msg, func(token string) string {
+	msg = DefaultFormatterPre(msg)
+	msg = DefaultFormatterTokenRegex.ReplaceAllStringFunc(msg, func(token string) string {
 		style := token[1 : len(token)-1]
 		if this.styles == nil {
 			if _, ok := DefaultStyles[style]; ok {
@@ -84,7 +114,18 @@ func (this *DefaultFormatter) Format(msg string) string {
 			return token
 		}
 	})
-	msg = strings.Replace(msg, "~~~~#~~~~", "<", -1)
+	msg = DefaultFormatterPost(msg)
 
 	return msg
+}
+
+func init() {
+
+	// for each token `foo` add a token `/foo`, which contains reset, so we can do "<error>bla</error>"
+	// instead of "<error>bla<reset>".
+	for _, m := range []*map[string]string{&DefaultStyles, &SunburnStyles, &WinterStyles} {
+		for k, _ := range *m {
+			(*m)[fmt.Sprintf("/%s", k)] = (*m)["reset"]
+		}
+	}
 }

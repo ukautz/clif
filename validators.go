@@ -6,7 +6,7 @@ import (
 )
 
 // IsAny joins a set of validator methods and returns true if ANY of them matches
-func IsAny(v ...SetupMethod) SetupMethod {
+func IsAny(v ...ParseMethod) ParseMethod {
 	return func(name, value string) (string, error) {
 		var err error
 		replace := value
@@ -20,7 +20,7 @@ func IsAny(v ...SetupMethod) SetupMethod {
 }
 
 // IsAll joins a set of validators methods and returns true if ALL of them match
-func IsAll(v ...SetupMethod) SetupMethod {
+func IsAll(v ...ParseMethod) ParseMethod {
 	return func(name, value string) (string, error) {
 		var err error
 		replace := value

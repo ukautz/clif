@@ -30,15 +30,21 @@ func main() {
 * [Getting started](#getting-started)
 * [Commands](#commands)
   * [Callback functions](#callback-functions)
+    * [Named](#named)
+    * [Default objects](#default-objects)
   * [Arguments and Options](#arguments-and-options)
     * [Arguments](#arguments)
     * [Options](#options)
       * [Flags](#flags)
-    * [Validation](#validation)
+    * [Validation &amp; (Parsing | Transformation)](#validation--parsing--transformation)
+    * [Environment variables &amp; default](#environment-variables--default)
+    * [Default options](#default-options)
 * [Input &amp; Output](#input--output)
   * [Customizing Input](#customizing-input)
   * [Extending Output](#extending-output)
-* [Patterns](#patterns)
+* [Patterns &amp; Examples](#patterns--examples)
+  * [Default options - onfig file](#default-options---eg-config-file)
+  * [Structure](#struct
 * [See also](#see-also)
 
 - - -
@@ -83,6 +89,8 @@ $ ./app other
 
 Callback functions can have arbitrary parameters. CLIF uses a small, built-in callback injection container which allows you to register any kind of object (`struct` or `interface`) beforehand.
 
+So you can register any object (interface{}, struct{} .. and anything else, see [below](#named)) in your bootstrap and then "require" those instances by simply putting them in the command callback signature:
+
 ```go
 // Some type definition
 type MyFoo struct {
@@ -93,7 +101,7 @@ type MyFoo struct {
 foo := &MyFoo{X: 123}
 cli.Register(foo)
 
-// Register command with callback using the type
+// Create command with callback using the peviously registered instance
 cli.NewCommand("foo", "Call foo", func (foo *MyFoo) {
     // do something with foo
 })
@@ -131,13 +139,14 @@ cli.RegisterNamed("foo", new(MyFoo)).
     RegisterNamed("baz", "bla")
 
 // Register command with callback named container
-cli.NewCommand("bar", "Call bar", func (named map[string]interface{}) {
-    fmt.Println(named["baz"].(string))
+cli.NewCommand("bar", "Call bar", func (named clif.NamedParameters) {
+    asMap := map[string]interface{}(named)
+    fmt.Println(asMap["baz"].(string))
 })
 ```
 
-**Note**: If you want to use the named feature, you cannot `Register()` any `map[string]interface{}`, since
-"normally" registered objects are evaluated before named.
+**Note**: If you want to use the named feature, you cannot `Register()` any `NamedParameters`
+instance yourself, since "normally" registered objects are evaluated before named.
 
 #### Default objects
 
@@ -246,19 +255,31 @@ func callbackFunctionI(c *clif.Command) {
 }
 ```
 
-#### Validation
+#### Validation & (Parsing | Transformation)
 
-You can provide argument or option validators, which are executed on parsing the command line input, before it is delegated to your callback.
+You can validate/parse/transform the input using the `Parse` attribute of options or arguments. It can be (later on)
+set using the `SetParse()` method:
 
 ``` go
-arg := clif.NewArgument("my-int", "An integer", "", true, false)
-arg.SetValidator(func(name, value string) error {
-	if _, err := strconv.Atoi(value); err != nil {
-		return fmt.Errorf("Oops: %s is not an integer: %s", name, err)
-	} else {
-		return nil
-	}
-})
+// Validation example
+arg := clif.NewArgument("my-int", "An integer", "", true, false).
+    SetParse(func(name, value string) (string, error) {
+        if _, err := strconv.Atoi(value); err != nil {
+            return "", fmt.Errorf("Oops: %s is not an integer: %s", name, err)
+        } else {
+            return value, nil
+        }
+    })
+
+// Transformation example
+opt := clif.NewOption("client-id", "c", "The client ID", "", true, false).
+    SetParse(func(name, value string) (string, error) {
+        if strings.Index(value, "#") != 0 {
+            return fmt.Sprintf("#%s", value), nil
+        } else {
+            return value, nil
+        }
+    })
 ```
 
 There are a couple of built-in validators you can use out of the box:
@@ -268,13 +289,77 @@ There are a couple of built-in validators you can use out of the box:
 
 See [validators.go](validators.go).
 
+#### Environment variables & default
+
+The argument and option constructors (`NewArgument`, `NewOption`) already allow you to set a default. In addition you can set
+the name of an environment variable, which will be used, if the parameter is not provided.
+
+``` go
+opt := clif.NewOption("client-id", "c", "The client ID", "", true, false).SetEnv("CLIENT_ID")
+```
+
+The order is:
+
+1. Provided, eg `--config /path/to/config`
+2. Environment variable, eg `CONFIG_FILE`
+3. Default value, as provided in constructor or set via `SetDefault()`
+
+**Note**: A *required* parameter must have a value, but it does not care wheter it was provided as input, via environment variable or as a default file.
+
+#### Default options
+
+Often you need one or multiple options on every or most commands. The usual `--verbose` or `--config /path..` are common examples.
+CLIF provides two ways to deal with those.
+
+1. Modifying/extending `clif.DefaultOptions` (it's pre-filled with the `--help` option, which is `clif.DefaultHelpOption`)
+2. Calling `AddDefaultOptions()` or `NewDefaultOption()` on an instance of `clif.Cli`
+
+The former is global (for any instance of `clif.Cli`) and assigned to any new command (created by the `NewCommand` constructor). The latter is applied when `Run()` is called and is in the scope of a single `clif.Cli` instance.
+
+**Note**: A helpful patterns is combining default options and the registry. Following an example parsing a config file, which can be set on any comand with `--config /path..` or as an environment variable and has a default path.
+
+```go
+// init new cli app
+cli := clif.New("my-app", "1.2.3", "My app that does something")
+
+// register default option, which fills injection container with config instance
+configOpt := clif.NewOption("config", "c", "Path to config file", "/default/config/path.json", true, false).
+    SetEnv("MY_APP_CONFIG").
+    SetParse(function(name, value string) (string, error) {
+        if raw, err := ioutil.ReadFile(value); err != nil {
+            return "", fmt.Errorf("Could not read config file %s: %s", value, err)
+        } else if err = json.Unmarshal(raw, &conf.Data); err != nil {
+            return "", fmt.Errorf("Could not unmarshal config file %s: %s", value, err)
+        } else if _, ok := conf.Data["name"]; !ok {
+            return "", fmt.Errorf("Config %s is missing \"name\"", value)
+        } else {
+            cli.Register(conf)
+            return value, nil
+        }
+    })
+```
+
 Input & Output
 --------------
 
 Of course, you can just use `fmt` and `os.Stdin`, but for convenience (and fancy output) there are `clif.Output` and `clif.Input`.
 
+### Input
+
+You can inject an instance of the `clif.Input` interface into your command callback. It provides small set of often used tools.
+
+![input](https://cloud.githubusercontent.com/assets/600604/8201525/510f730e-14d2-11e5-83aa-b238c804e98f.png)
+
+#### Ask & AskRegex
+
+Just ask the user a question then read & check the input. The question will be asked until the check/requirement is satisfied (or the user exits out with `ctrl+c`):
+
 ``` go
-func callbackFunctionI(in clif.Input, out clif.Output) {
+func callbackFunctionI(in clif.Input) {
+	// Any input is OK
+	foo := in.Ask("What is a foo", nil)
+
+	// Validate input
 	name := in.Ask("Who are you? ", func(v string) error {
 		if len(v) > 0 {
 			return nil
@@ -282,26 +367,61 @@ func callbackFunctionI(in clif.Input, out clif.Output) {
 			return fmt.Errorf("Didn't catch that")
 		}
 	})
-	father := in.Choose("Who is your father?", map[string]string{
-		"yoda":  "The small, green guy",
-		"darth": "NOOOOOOOO!",
-		"obi":   "The old man with the light thingy",
-	})
 
-	out.Printf("Well, %s, ", name)
-	if father != "darth" {
-		out.Printf("<success>may the force be with you!<reset>\n")
-	} else {
-		out.Printf("<error>u bad!<reset>\n")
+	// Shorthand for regex validation
+	count := in.AskRegex("How many? ", regexp.MustCompile(`^[0-9]+$`))
+
+	// ..
+}
+```
+
+*See `clif.RenderAskQuestion` for customization.*
+
+#### Confirm
+
+`Confirm()` ask the user a question until it is answered with `yes` (or `y`) or `no` (or `n`) and returns the response as `bool`.
+
+``` go
+func callbackFunctionI(in clif.Input) {
+	if in.Confirm("Let's do it?") {
+		// ..
 	}
 }
 ```
 
-![input](https://cloud.githubusercontent.com/assets/600604/8201525/510f730e-14d2-11e5-83aa-b238c804e98f.png)
+*See `clif.ConfirmRejection`, `clif.ConfirmYesRegex` and `clif.ConfirmNoRegex` for customization.*
 
-### Customizing Input
+#### Choose
 
-There is not much. Check out `RenderChooseQuestion`, `RenderChooseOption` and `RenderChooseQuery` in [input.go](input.go).
+`Choose()` is like a select in HTML and provides a list of options with descriptions to the user. The user then must choose (type in) one of the options. The choices will be presented to the user until a valid choice (one of the options) is provided.
+
+``` go
+func callbackFunctionI(in clif.Input) {
+	father := in.Choose("Who is your father?", map[string]string{
+		"yoda":  "The small, green guy",
+		"darth": "The one with the smoker voice and the dark cape!",
+		"obi":   "The old man with the light thingy",
+	})
+
+	if father == "darth" {
+		// ..
+	}
+}
+```
+
+*See `clif.RenderChooseQuestion`, `clif.RenderChooseOption` and `clif.RenderChooseQuery` for customization.*
+
+### Output & formatting
+
+The `clif.Output` interface can be injected into any callback. It relies on a `clif.Formatter`, which does the actual formatting (eg colorizing) of the text.
+
+#### Formatters
+
+There are two formatters available:
+
+1. `NewMonochromeOutput
+
+
 
 ### Extending Output
 
@@ -324,7 +444,7 @@ Some patterns I employ which might make sense to others:
 Assuming each/most of your commands require some global config, which needs to have
 an optional path. Eg: `my-app do-something --config /path/to/config.yml`.
 
-This can be solved using the `Setup` method of default options:
+This can be solved using the `Parse` method of a default options:
 
 ```go
 // Some type for holding config
@@ -337,7 +457,7 @@ cli := clif.New("my-app", "1.2.3", "My app that does something")
 
 // register default option, which fills injection container with config instance
 configOpt := clif.NewOption("config", "c", "Path to config file", "/default/config/path.json", true, false).
-    SetSetup(function(name, value string) (string, error) {
+    SetParse(function(name, value string) (string, error) {
         if raw, err := ioutil.ReadFile(value); err != nil {
             return "", fmt.Errorf("Could not read config file %s: %s", value, err)
         } else if err = json.Unmarshal(raw, &conf.Data); err != nil {

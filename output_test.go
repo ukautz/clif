@@ -13,6 +13,10 @@ func (this *testCustomFormatter) Format(msg string) string {
 	return strings.ToUpper(msg)
 }
 
+func (this *testCustomFormatter) Escape(msg string) string {
+	return msg
+}
+
 func TestOutput(t *testing.T) {
 	Convey("Default output rendering", t, func() {
 		b := bytes.NewBuffer(nil)

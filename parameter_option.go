@@ -54,17 +54,24 @@ func (this *Option) SetDescription(v string) *Option {
 }
 
 // SetDefault is a builder method to set default value. Default value is used
-// if the option is not provided.
+// if the option is not provided (after environment variable).
 func (this *Option) SetDefault(v string) *Option {
 	this.Default = v
 	return this
 }
 
-// SetSetup is a builder method to set setup call on value. The setup call
+// SetEnv is a builder method to set environment variable name, from which to
+// take the value, if not provided (before default).
+func (this *Option) SetEnv(v string) *Option {
+	this.Env = v
+	return this
+}
+
+// SetParse is a builder method to set setup call on value. The setup call
 // must return a replace value (can be unchanged) or an error, which stops
 // evaluation and returns error to user.
-func (this *Option) SetSetup(v SetupMethod) *Option {
-	this.Setup = v
+func (this *Option) SetParse(v ParseMethod) *Option {
+	this.Parse = v
 	return this
 }
 

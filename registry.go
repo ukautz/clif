@@ -6,13 +6,13 @@ import (
 	"sync"
 )
 
+// ReduceMethod is type of the callback of the `Reduce` and `ReduceAsync` methods
+type ReduceMethod func(name string, value interface{}) bool
+
 // Registry is a small container holding objects which are injected into command calls.
 type Registry struct {
 	Container map[string]reflect.Value
 }
-
-// ReduceMethod is type of the callback of the `Reduce` and `ReduceAsync` methods
-type ReduceMethod func(name string, value interface{}) bool
 
 // NewRegistry constructs new, empty registry
 func NewRegistry() *Registry {

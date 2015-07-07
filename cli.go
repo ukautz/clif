@@ -12,6 +12,9 @@ import (
 // the `Herald()` method.
 type HeraldCallback func(*Cli) *Command
 
+// NamedParameters ...
+type NamedParameters map[string]interface{}
+
 // Cli is a command line interface object
 type Cli struct {
 
@@ -140,7 +143,7 @@ func (this *Cli) RunWith(args []string) {
 	cargs := []string{}
 	if len(args) < 1 || (len(args) == 1 && (args[0] == "-h" || args[0] == "--help")) {
 		this.Output().Printf(DescribeCli(this))
-		os.Exit(0)
+		return
 	} else {
 		name = args[0]
 		cargs = args[1:]
@@ -152,7 +155,7 @@ func (this *Cli) RunWith(args []string) {
 		err := c.Parse(cargs)
 		if help := c.Option("help"); help != nil && help.Bool() {
 			this.Output().Printf(DescribeCommand(c))
-			os.Exit(0)
+			return
 		}
 		if err != nil {
 			this.Output().Printf(DescribeCommand(c))
@@ -181,7 +184,7 @@ func (this *Cli) Call(c *Command) ([]reflect.Value, error) {
 	this.Register(c)
 	method := c.Call.Type()
 	input := make([]reflect.Value, method.NumIn())
-	named := make(map[string]interface{})
+	named := NamedParameters(make(map[string]interface{}))
 	namedType := reflect.TypeOf(named).String()
 	namedIndex := -1
 	for i := 0; i < method.NumIn(); i++ {
@@ -205,7 +208,7 @@ func (this *Cli) Call(c *Command) ([]reflect.Value, error) {
 			}
 			return false
 		})
-		input[namedIndex] = reflect.ValueOf(named)
+		input[namedIndex] = reflect.ValueOf(NamedParameters(named))
 	}
 
 	return c.Call.Call(input), nil
@@ -243,7 +246,7 @@ func (this *Cli) SetOnInterrupt(cb func() error) *Cli {
 			if err := this.onInterrupt(); err != nil {
 				Die(err.Error())
 			} else {
-				os.Exit(0)
+				Exit(0)
 			}
 		}()
 	}
