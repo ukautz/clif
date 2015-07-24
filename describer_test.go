@@ -22,16 +22,16 @@ func TestDescribeCommand(t *testing.T) {
 <info>It does really, really foo<reset>
 
 <subline>Usage:<reset>
-  foo bar [baz ...] [--help|-h] --boing|-b val [--zoing|-z] ...
+  foo bar [baz ...] [--help|-h] --boing|-b val [--zoing|-z ...]
 
 <subline>Arguments:<reset>
-  <info>bar<reset>  The bar <important>(req)<reset>
-  <info>baz<reset>  The baz <debug>(mult)<reset>
+  <info>bar<reset>  The bar (<important>req<reset>)
+  <info>baz<reset>  The baz (<debug>mult<reset>)
 
 <subline>Options:<reset>
   <info>--help|-h     <reset>  Display this help message
-  <info>--boing|-b val<reset>  The boing! <important>(req)<reset>
-  <info>--zoing|-z    <reset>  The ZOING! <debug>(mult)<reset> <debug>(env: "THE_ZOING")<reset>
+  <info>--boing|-b val<reset>  The boing! (<important>req<reset>)
+  <info>--zoing|-z    <reset>  The ZOING! (<debug>mult<reset>, env: <debug>THE_ZOING<reset>)
 
 `
 		So(s, ShouldEqual, expect)
@@ -61,6 +61,7 @@ func TestDescriberCli(t *testing.T) {
   <info>bazoing<reset>  It does bazoing
   <info>foo    <reset>  It does foo
   <info>help   <reset>  Show this help
+  <info>list   <reset>  List all available commands
  <subline>bla<reset>
   <info>bla:due<reset>  A sub of bla
   <info>bla:uno<reset>  A sub of bla

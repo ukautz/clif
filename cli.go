@@ -1,11 +1,11 @@
 package clif
 
 import (
-	"os"
-	"reflect"
 	"fmt"
-	"strings"
+	"os"
 	"os/signal"
+	"reflect"
+	"strings"
 )
 
 // HeraldCallback is type for creator method, which can be registered with
@@ -36,9 +36,11 @@ type Cli struct {
 	// Registry is a container holding objects for injection
 	Registry *Registry
 
-	// DefaultOptions contains options which are added to all commands early
-	// in the `Run()` call.
+	// DefaultOptions contains options which are added to all commands early in the `Run()` call.
 	DefaultOptions []*Option
+
+	// DefaultCommand contains name of the command which is executed if non is given. Defaults to "list"
+	DefaultCommand string
 
 	// OnInterrupt, when set with `SetOnInterrupt`, is callback which is executed
 	// if user triggers interrupt (ctrl+c). If an error is returned, then the
@@ -59,10 +61,17 @@ func New(name, version, desc string) *Cli {
 		Heralds:        make([]HeraldCallback, 0),
 		Registry:       NewRegistry(),
 		DefaultOptions: make([]*Option, 0),
+		DefaultCommand: "list",
 	}
-	this.Add(NewHelpCommand())
+
+	// add default helper commands.
+	this.Add(NewHelpCommand(), NewListCommand())
+
+	// setup output & input
 	out := NewColorOutput(os.Stdout)
-	this.Register(this).SetOutput(out).SetInput(NewDefaultInput(os.Stdin, out))
+	this.Register(this).
+		SetOutput(out).
+		SetInput(NewDefaultInput(os.Stdin, out))
 	return this
 }
 
@@ -130,6 +139,11 @@ func (this *Cli) Run() {
 
 // RunWith runs the cli with custom list of arguments
 func (this *Cli) RunWith(args []string) {
+	if args == nil {
+		args = []string{}
+	}
+
+	// late init commands
 	for _, cb := range this.Heralds {
 		this.Add(cb(this))
 	}
@@ -139,11 +153,12 @@ func (this *Cli) RunWith(args []string) {
 			cmd.AddOption(opt)
 		}
 	}
+
+	// determine command or print out default
 	name := ""
 	cargs := []string{}
-	if len(args) < 1 || (len(args) == 1 && (args[0] == "-h" || args[0] == "--help")) {
-		this.Output().Printf(DescribeCli(this))
-		return
+	if len(args) < 1 || (this.DefaultCommand == "list" && len(args) == 1 && (args[0] == "-h" || args[0] == "--help")) {
+		name = this.DefaultCommand
 	} else {
 		name = args[0]
 		cargs = args[1:]
@@ -198,11 +213,11 @@ func (this *Cli) Call(c *Command) ([]reflect.Value, error) {
 			}
 			namedIndex = i
 		} else {
-			return nil, fmt.Errorf("Missing callback parameter %s", s)
+			return nil, fmt.Errorf("Callback parameter of type %s for command \"%s\" was not found in registry", s, c.Name)
 		}
 	}
 	if namedIndex > -1 {
-		this.Registry.Reduce(func (name string, value interface{}) bool {
+		this.Registry.Reduce(func(name string, value interface{}) bool {
 			if strings.Index(name, "N:") == 0 {
 				named[name[2:]] = value
 			}
@@ -212,6 +227,12 @@ func (this *Cli) Call(c *Command) ([]reflect.Value, error) {
 	}
 
 	return c.Call.Call(input), nil
+}
+
+// SetDefaultCommand is builder method and overwrites the default command ("list") with something else
+func (this *Cli) SetDefaultCommand(v string) *Cli {
+	this.DefaultCommand = v
+	return this
 }
 
 // SetDescription is builder method and sets description
@@ -234,7 +255,7 @@ func (this *Cli) SetOutput(out Output) *Cli {
 	return this
 }
 
-// SetOnInterrupt sets callback for interrupt and associates signal
+// SetOnInterrupt sets callback for interrupt signal (ctrl+c)
 func (this *Cli) SetOnInterrupt(cb func() error) *Cli {
 	this.onInterrupt = cb
 

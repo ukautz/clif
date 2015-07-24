@@ -421,6 +421,7 @@ There are two formatters available:
 
 1. `NewMonochromeOutput
 
+TODO: continue here
 
 
 ### Extending Output
@@ -433,54 +434,6 @@ cli.SetOutput(clif.NewPlainOutput())
 ```
 
 To extend or change the fancy style, please modify `clif.DefaultStyles` in [formatter.go](formatter.go).
-
-Patterns & Examples
--------------------
-
-Some patterns I employ which might make sense to others:
-
-### Default options - eg config file
-
-Assuming each/most of your commands require some global config, which needs to have
-an optional path. Eg: `my-app do-something --config /path/to/config.yml`.
-
-This can be solved using the `Parse` method of a default options:
-
-```go
-// Some type for holding config
-type MyConfig struct {
-    Data map[string]interface{}
-}
-
-// init new cli app
-cli := clif.New("my-app", "1.2.3", "My app that does something")
-
-// register default option, which fills injection container with config instance
-configOpt := clif.NewOption("config", "c", "Path to config file", "/default/config/path.json", true, false).
-    SetParse(function(name, value string) (string, error) {
-        if raw, err := ioutil.ReadFile(value); err != nil {
-            return "", fmt.Errorf("Could not read config file %s: %s", value, err)
-        } else if err = json.Unmarshal(raw, &conf.Data); err != nil {
-            return "", fmt.Errorf("Could not unmarshal config file %s: %s", value, err)
-        } else if _, ok := conf.Data["name"]; !ok {
-            return "", fmt.Errorf("Config %s is missing \"name\"", value)
-        } else {
-            cli.Register(conf)
-            return value, nil
-        }
-    })
-
-// register command, which uses config instance
-cli.New("foo", "Do foo", func(conf *MyConfig) {
-    if v, ok := conf.Data["foo"]; ok {
-        // ..
-    }
-}).NewOption("other", "o", "Other option", false, false)
-```
-
-### Structure
-
-I like a tidy structure, so I usually have an init-based setup. See [Repo](https://github.com/ukautz/repos) (a tool to keep track of changes in your repos) for an example. Especially the [main.go](https://github.com/ukautz/repos/main/main.go) and the command initialization in [commands.go](https://github.com/ukautz/repos/commands.go).
 
 See also
 --------

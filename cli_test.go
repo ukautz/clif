@@ -115,7 +115,7 @@ func TestCliRun(t *testing.T) {
 		Convey("Run method with not registered arg fails", func() {
 			So(func() {
 				c.RunWith([]string{"oops"})
-			}, ShouldPanicWith, "Missing callback parameter io.Writer")
+			}, ShouldPanicWith, `Callback parameter of type io.Writer for command "oops" was not found in registry`)
 		})
 		Convey("Run method with invalid arg fails", func() {
 			So(func() {
@@ -135,23 +135,105 @@ func TestCliConstruction(t *testing.T) {
 		app := New("My App", "1.0.0", "Testing app")
 		cb := func() {}
 
-		Convey("Use command constructor", func() {
-			app.New("foo", "For fooing", cb)
+		Convey("Two default commands exist", func() {
 			So(len(app.Commands), ShouldEqual, 2)
+			Convey("One is \"help\"", func() {
+				_, ok := app.Commands["help"]
+				So(ok, ShouldBeTrue)
+				Convey("Other is \"list\"", func() {
+					_, ok := app.Commands["list"]
+					So(ok, ShouldBeTrue)
+				})
+			})
+		})
+
+		Convey("Command constructur adds new command", func() {
+			app.New("foo", "For fooing", cb)
+			So(len(app.Commands), ShouldEqual, 3)
 			So(app.Commands["foo"], ShouldNotBeNil)
 		})
 
-		Convey("Use variadic adding", func() {
+		Convey("Adding can be used variadic", func() {
 			app.New("foo", "For fooing", cb)
 			cmds := []*Command{
 				NewCommand("foo", "For fooing", cb),
 				NewCommand("bar", "For baring", cb),
 			}
 			app.Add(cmds...)
-			So(len(app.Commands), ShouldEqual, 3)
+			So(len(app.Commands), ShouldEqual, 4)
 			So(app.Commands["foo"], ShouldNotBeNil)
 			So(app.Commands["bar"], ShouldNotBeNil)
 		})
 	})
 }
 
+func TestCliDefaultCommand(t *testing.T) {
+	Convey("Change default command of cli", t, func() {
+		x := 0
+		app := New("My App", "1.0.0", "Testing app").
+			SetDefaultCommand("other").
+			New("other", "Something else", func() { x += 1 })
+		So(app.DefaultCommand, ShouldEqual, "other")
+		Convey("Calling default command", func() {
+			app.RunWith(nil)
+			So(x, ShouldEqual, 1)
+		})
+	})
+}
+
+func TestCliDefaultOptions(t *testing.T) {
+	Convey("Adding default options to cli", t, func() {
+		app := New("My App", "1.0.0", "Testing app")
+		So(len(app.DefaultOptions), ShouldEqual, 0)
+
+		Convey("Using default option creator adds option", func() {
+			app.NewDefaultOption("foo", "f", "fooing", "", false, false)
+			So(len(app.DefaultOptions), ShouldEqual, 1)
+		})
+
+		Convey("Adding default option .. adds them", func() {
+			app.AddDefaultOptions(
+				NewOption("foo", "f", "fooing", "", false, false),
+				NewOption("bar", "b", "baring", "", false, false),
+			)
+			So(len(app.DefaultOptions), ShouldEqual, 2)
+		})
+
+		Convey("Cli default options are not added to command on command create", func() {
+			app.NewDefaultOption("foo", "f", "fooing", "", false, false)
+			cmd := NewCommand("bla", "bla", func() {})
+			app.Add(cmd)
+			So(len(cmd.Options), ShouldEqual, len(DefaultOptions))
+
+			Convey("Default options are added in run", func() {
+				app.RunWith([]string{"bla"})
+				So(len(cmd.Options), ShouldEqual, len(DefaultOptions)+1)
+			})
+		})
+	})
+}
+
+func TestCliHeralds(t *testing.T) {
+	Convey("Command heralds are add late, in run", t, func() {
+		app := New("My App", "1.0.0", "Testing app")
+		So(len(app.Commands), ShouldEqual, 2)
+		So(len(app.Heralds), ShouldEqual, 0)
+
+		Convey("Heralding command does not add it to list", func() {
+			x := 0
+			app.Herald(func(c *Cli) *Command {
+				return NewCommand("foo", "fooing", func(){ x = 2 })
+			})
+			So(len(app.Commands), ShouldEqual, 2)
+			So(len(app.Heralds), ShouldEqual, 1)
+
+			Convey("Running adds heralded commands", func() {
+				app.RunWith([]string{"foo"})
+				So(x, ShouldEqual, 2)
+				So(len(app.Commands), ShouldEqual, 3)
+				So(len(app.Heralds), ShouldEqual, 0)
+			})
+		})
+
+	})
+}

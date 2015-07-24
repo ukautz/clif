@@ -2,7 +2,6 @@ package clif
 
 import (
 	"os"
-	"reflect"
 )
 
 // Die is the default function executed on die. It can be used as a shorthand
@@ -13,10 +12,23 @@ var Die = func(msg string, args ...interface{}) {
 	Exit(1)
 }
 
+// Exit is wrapper for os.Exit, so it can be overwritten for tests or edge use cases
 var Exit = func(s int) {
 	os.Exit(s)
 }
 
-func clone(v interface{}) interface{} {
-	return reflect.ValueOf(v).Elem().Addr().Interface()
+// CommandSort implements the `sort.Sortable` interface for commands, based on
+// the command `Name` attribute
+type CommandsSort []*Command
+
+func (this CommandsSort) Len() int {
+	return len(this)
+}
+
+func (this CommandsSort) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
+
+func (this CommandsSort) Less(i, j int) bool {
+	return this[i].Name < this[j].Name
 }

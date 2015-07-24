@@ -1,4 +1,4 @@
-// +build never
+// +build ignore
 
 package main
 
