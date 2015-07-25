@@ -8,7 +8,7 @@ Go framework for rapid command line application development.
 Example
 -------
 
-![extended](https://cloud.githubusercontent.com/assets/600604/8201524/50f04bdc-14d2-11e5-8ccb-591ef9e9b1f1.png)
+![demo](https://cloud.githubusercontent.com/assets/600604/8886731/c0a517e0-326f-11e5-8349-6ebee2cb8de5.gif)
 
 ```go
 package main
@@ -16,11 +16,11 @@ package main
 import "gopkg.in/ukautz/clif.v0"
 
 func main() {
-	c := cli.New("My App", "1.0.0", "An example application").
+	clif.New("My App", "1.0.0", "An example application").
 		New("hello", "The obligatory hello world", func(out cli.Output) {
 			out.Printf("Hello World\n")
-		})
-	c.Run()
+		}).
+		Run()
 }
 ```
 
@@ -40,11 +40,14 @@ func main() {
     * [Environment variables &amp; default](#environment-variables--default)
     * [Default options](#default-options)
 * [Input &amp; Output](#input--output)
-  * [Customizing Input](#customizing-input)
-  * [Extending Output](#extending-output)
-* [Patterns &amp; Examples](#patterns--examples)
-  * [Default options - onfig file](#default-options---eg-config-file)
-  * [Structure](#struct
+  * [Input](#input)
+    * [Ask &amp; AskRegex](#ask--askregex)
+    * [Confirm](#confirm)
+    * [Choose](#choose)
+  * [Output &amp; formatting](#output--formatting)
+    * [Outputs](#outputs)
+    * [Styles](#styles)
+* [Real-life example](#real-life-example)
 * [See also](#see-also)
 
 - - -
@@ -60,13 +63,6 @@ Getting started
 ---------------
 
 One the one side, CLIF's *builder*-like API can be easily used for rapid development of small, single purpose tools. On the other side, CLIF is designed with complex console applications in mind.
-
-```go
-clif.New("My App", "1.0.0", "An example application").
-	New("ls", "", func() { fmt.Printf("Foo\n") }).
-	New("bar", "", func() { fmt.Printf("Bar\n") }).
-	Run()
-```
 
 Commands
 --------
@@ -87,7 +83,7 @@ $ ./app other
 
 ### Callback functions
 
-Callback functions can have arbitrary parameters. CLIF uses a small, built-in callback injection container which allows you to register any kind of object (`struct` or `interface`) beforehand.
+Callback functions can have arbitrary parameters. CLIF uses a small, built-in (signatur) injection container which allows you to register any kind of object (`struct` or `interface`) beforehand.
 
 So you can register any object (interface{}, struct{} .. and anything else, see [below](#named)) in your bootstrap and then "require" those instances by simply putting them in the command callback signature:
 
@@ -97,38 +93,61 @@ type MyFoo struct {
     X int
 }
 
-// register object instance with container
-foo := &MyFoo{X: 123}
-cli.Register(foo)
+func main() {
+    // init cli
+    cli := clif.New("My App", "1.0.0", "An example application")
 
-// Create command with callback using the peviously registered instance
-cli.NewCommand("foo", "Call foo", func (foo *MyFoo) {
-    // do something with foo
-})
+    // register object instance with container
+    foo := &MyFoo{X: 123}
+    cli.Register(foo)
+
+    // Create command with callback using the peviously registered instance
+    cli.NewCommand("foo", "Call foo", func (foo *MyFoo) {
+        // do something with foo
+    })
+
+    cli.Run()
+}
 ```
 
 Using interfaces is possible as well, but a bit less elegant:
 
 ```go
-// Some type definition
+// Some interface
 type MyBar interface {
     Bar() string
 }
 
-// create object, which implements MyBar:
-foo := &MyFoo{}
-t := reflect.TypeOf((*MyBar)(nil)).Elem()
-cli.RegisterAs(t.String(), foo)
+// Some type
+type MyFoo struct {
+}
 
-// Register command with callback using the type
-cli.NewCommand("bar", "Call bar", func (bar MyBar) {
-    // do something with bar
-})
+// implement interface
+func (m *MyFoo) Bar() string {
+    return "bar"
+}
+
+func main() {
+    // init cli
+    cli := clif.New("My App", "1.0.0", "An example application")
+
+    // create object, which implements MyBar:
+    foo := &MyFoo{}
+    t := reflect.TypeOf((*MyBar)(nil)).Elem()
+    cli.RegisterAs(t.String(), foo)
+
+    // Register command with callback using the type
+    cli.NewCommand("bar", "Call bar", func (bar MyBar) {
+        // do something with bar
+    })
+
+    cli.Run()
+}
 ```
 
 #### Named
 
-This works great if you only have a single instance of any object of a specific type.
+Everything works great if you only have a single instance of any object of a specific type.
 However, if you need more than one instance (which might often be the case for primitive
 types, such as `int` or `string`) you can use named registering:
 
@@ -152,10 +171,10 @@ instance yourself, since "normally" registered objects are evaluated before name
 
 CLIF pre-populates the dependency container with a couple of built-in objects:
 
-* The `Output` (formatted output helper, see below)
-* The `Input` (input helper, see below)
-* The `*Cli` instance itself
-* The current `*Command` instance
+* The `Output` (formatted output helper, see below), eg `func (out clif.Output) { .. }`
+* The `Input` (input helper, see below), eg `func (in clif.Input) { .. }`
+* The `*Cli` instance itself, eg `func (c *clif.Cli) { .. }`
+* The current `*Command` instance, eg `func (o *clif.Command) { .. }`
 
 ### Arguments and Options
 
@@ -163,6 +182,7 @@ CLIF can deal with arguments and options. The difference being:
 
 * **Arguments** come after the command name. They are identified by their position.
 * **Options** have no fixed position. They are identified by their `--opt-name` (or alias, eg `-O`)
+* Both **Arguments** and **Options** come *after* the comand (eg `./my-cli command foo --bar baz`)
 
 Of course you can use arguments and options at the same time..
 
@@ -191,14 +211,18 @@ $ ./my-app hello the-name other1 other2 other3
 #        command name
 ```
 
-Position of arguments matters. Make sure you add them in the right order. And: **required** arguments must come before optional arguments (makes sense, right?). There can be only one **multiple** argument at all.
+Position of arguments matters. Make sure you add them in the right order. And: **required** arguments must come before optional arguments (makes sense, right?). There can be only one **multiple** argument at all and, of course, it must be the last (think: variadic).
 
-You can access the arguments by injecting the command instance into the callback and calling the `Argument()` method. You can choose to interpret the argument as `String()`, `Int()`, `Float()`, `Bool()`, `Time()` or `Json()`. Multiple arguments can be accessed with `Strings()`, `Ints()` .. and so on. `Count()` gives the amount of (provided) multiple arguments and `Provided()` returns bool for optional arguments. Pleas see [parameter.go](parameter.go) for more.
+You can access the arguments by injecting the command instance `*clif.Command` into the callback and calling the `Argument()` method. You can choose to interpret the argument as `String()`, `Int()`, `Float()`, `Bool()`, `Time()` or `Json()`. Multiple arguments can be accessed with `Strings()`, `Ints()` .. and so on. `Count()` gives the amount of (provided) multiple arguments and `Provided()` returns bool for optional arguments. Please see [parameter.go](parameter.go) for more.
 
 ``` go
 func callbackFunctionI(c *clif.Command) {
+	// a single
 	name := c.Argument("name").String()
+
+	// a multiple
 	others := c.Argument("other").Strings()
+
 	// .. do something ..
 }
 ```
@@ -245,7 +269,13 @@ flag := clif.NewOption("my-flag", "f", "Something ..", "", false, false).IsFlag(
 cmd := clif.NewCommand("hello", "A description", callBackFunction).AddOption(flag)
 ```
 
-Usually, you want to use `Bool()` on flags:
+When using the option, you dont need to (nor can you) provide an argument:
+
+```bash
+$ ./my-app hello --my-flag
+```
+
+You want to use `Bool()` to check if a flag is provided:
 
 ``` go
 func callbackFunctionI(c *clif.Command) {
@@ -282,10 +312,10 @@ opt := clif.NewOption("client-id", "c", "The client ID", "", true, false).
     })
 ```
 
-There are a couple of built-in validators you can use out of the box:
+There are a few built-in validators you can use out of the box:
 
-* `clif.IsInt` - Checks for integer
-* `clif.IsFloat` - Checks for float
+* `clif.IsInt` - Checks for integer, eg `clif.NewOption(..).SetParse(clif.IsInt)`
+* `clif.IsFloat` - Checks for float, eg `clif.NewOption(..).SetParse(clif.IsFloat)`
 
 See [validators.go](validators.go).
 
@@ -304,7 +334,7 @@ The order is:
 2. Environment variable, eg `CONFIG_FILE`
 3. Default value, as provided in constructor or set via `SetDefault()`
 
-**Note**: A *required* parameter must have a value, but it does not care wheter it was provided as input, via environment variable or as a default file.
+**Note**: A *required* parameter must have a value, but it does not care whether it came from input, via environment variable or as a default value.
 
 #### Default options
 
@@ -316,27 +346,46 @@ CLIF provides two ways to deal with those.
 
 The former is global (for any instance of `clif.Cli`) and assigned to any new command (created by the `NewCommand` constructor). The latter is applied when `Run()` is called and is in the scope of a single `clif.Cli` instance.
 
-**Note**: A helpful patterns is combining default options and the registry. Following an example parsing a config file, which can be set on any comand with `--config /path..` or as an environment variable and has a default path.
+**Note**: A helpful patterns is combining default options and the injection container/registry. Following an example parsing a config file, which can be set on any command with `--config /path..` or as an environment variable and has a default path.
 
 ```go
-// init new cli app
-cli := clif.New("my-app", "1.2.3", "My app that does something")
 
-// register default option, which fills injection container with config instance
-configOpt := clif.NewOption("config", "c", "Path to config file", "/default/config/path.json", true, false).
-    SetEnv("MY_APP_CONFIG").
-    SetParse(function(name, value string) (string, error) {
-        if raw, err := ioutil.ReadFile(value); err != nil {
-            return "", fmt.Errorf("Could not read config file %s: %s", value, err)
-        } else if err = json.Unmarshal(raw, &conf.Data); err != nil {
-            return "", fmt.Errorf("Could not unmarshal config file %s: %s", value, err)
-        } else if _, ok := conf.Data["name"]; !ok {
-            return "", fmt.Errorf("Config %s is missing \"name\"", value)
-        } else {
-            cli.Register(conf)
-            return value, nil
-        }
+type Conf struct {
+    Foo string
+    Bar string
+}
+
+func() main {
+
+    // init new cli app
+    cli := clif.New("my-app", "1.2.3", "My app that does something")
+
+    // register default option, which fills injection container with config instance
+    configOpt := clif.NewOption("config", "c", "Path to config file", "/default/config/path.json", true, false).
+        SetEnv("MY_APP_CONFIG").
+        SetParse(function(name, value string) (string, error) {
+            conf := new(Conf)
+            if raw, err := ioutil.ReadFile(value); err != nil {
+                return "", fmt.Errorf("Could not read config file %s: %s", value, err)
+            } else if err = json.Unmarshal(raw, conf); err != nil {
+                return "", fmt.Errorf("Could not unmarshal config file %s: %s", value, err)
+            } else if conf.Foo == "" {
+                return "", fmt.Errorf("Config %s is missing \"foo\"", value)
+            } else {
+                // register *Conf
+                cli.Register(conf)
+                return value, nil
+            }
+        })
+    cli.AddDefaultOptions(configOpt)
+
+    // Since *Conf was registered it can be used in any callback
+    cli.New("anything", "Does anything", func(conf *Conf) {
+        // do something with conf
     })
+
+    cli.Run()
+}
 ```
 
 Input & Output
@@ -348,7 +397,7 @@ Of course, you can just use `fmt` and `os.Stdin`, but for convenience (and fancy
 
 You can inject an instance of the `clif.Input` interface into your command callback. It provides small set of often used tools.
 
-![input](https://cloud.githubusercontent.com/assets/600604/8201525/510f730e-14d2-11e5-83aa-b238c804e98f.png)
+![input](https://cloud.githubusercontent.com/assets/600604/8886968/378a2668-3273-11e5-8bda-51b2b5cd127b.png)
 
 #### Ask & AskRegex
 
@@ -415,25 +464,33 @@ func callbackFunctionI(in clif.Input) {
 
 The `clif.Output` interface can be injected into any callback. It relies on a `clif.Formatter`, which does the actual formatting (eg colorizing) of the text.
 
-#### Formatters
+#### Outputs
 
-There are two formatters available:
+Per default, the `clif.DefaultInput` via `clif.NewColorOutput()` is used. It uses `clif.DefaultStyles`, which look like the screenshots you are seeing in this readme.
 
-1. `NewMonochromeOutput
-
-TODO: continue here
-
-
-### Extending Output
-
-Output comes with a set of tokens, such as `<success>` or `<error>`, which inject ASCII color codes into the output stream. If you don't want fancy colors, you can just:
+You can change the output like so:
 
 ``` go
-cli := clif.New("my-app", "0.1.0", "Boring output")
-cli.SetOutput(clif.NewPlainOutput())
+cli := clif.New(..)
+cli.SetOutput(clif.NewColorOutput().
+    SetFormatter(clif.NewDefaultFormatter(clif.SunburnStyles))
 ```
 
-To extend or change the fancy style, please modify `clif.DefaultStyles` in [formatter.go](formatter.go).
+#### Styles
+
+Styles are applied by parsing (replacing) tokens like `<error>`, which would be substitude with `\033[31;1m` (using the default styles) resulting in a red coloring. Another example is `<reset>`, which is replaced with `\033[0m` leading to reset all colorings & styles.
+
+There three built-in color styles (of course, you can extend them or add your own):
+
+1. `DefaultStyles` - as you can see on this page
+1. `SunburnStyles` - more yellow'ish
+1. `WinterStyles` - more blue'ish
+
+
+Real-life example
+-----------------
+
+To provide you a usful'ish example, I've written a small CLI application called [repos](https://github.com/ukautz/repos).
 
 See also
 --------
