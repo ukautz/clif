@@ -1,4 +1,6 @@
 ![status](https://api.travis-ci.org/ukautz/clif.svg?branch=v0)
+[![GoDoc](https://godoc.org/gopkg.in/ukautz/clif.v0?status.svg)](http://godoc.org/gopkg.in/ukautz/clif.v0)
+
 
 CLIF - Command line interface framework
 =======================================
