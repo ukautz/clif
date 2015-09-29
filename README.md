@@ -19,7 +19,7 @@ import "gopkg.in/ukautz/clif.v0"
 
 func main() {
 	clif.New("My App", "1.0.0", "An example application").
-		New("hello", "The obligatory hello world", func(out cli.Output) {
+		New("hello", "The obligatory hello world", func(out clif.Output) {
 			out.Printf("Hello World\n")
 		}).
 		Run()
