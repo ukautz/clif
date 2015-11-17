@@ -3,7 +3,7 @@
 package main
 
 import (
-	"gopkg.in/ukautz/clif.v0"
+	"gopkg.in/ukautz/clif.v1"
 	"os/exec"
 	"fmt"
 )

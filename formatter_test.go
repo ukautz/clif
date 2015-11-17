@@ -32,6 +32,14 @@ func TestDefaultFormatterFormat(t *testing.T) {
 			s := f.Format("Foo <headline>bar<reset> <baz> boing")
 			So(s, ShouldEqual, "Foo <headline>bar<reset> BAZ boing")
 		})
+		Convey("Formatting works over multi-line string", func() {
+			f := NewDefaultFormatter(map[string]string{
+				"headline": "H!",
+				"reset":    "R!",
+			})
+			s := f.Format("Foo <headline>bar baz\ndings<reset> baz")
+			So(s, ShouldEqual, "Foo H!barR! baz")
+		})
 	})
 }
 

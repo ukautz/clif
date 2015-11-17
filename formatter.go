@@ -62,6 +62,19 @@ var WinterStyles = map[string]string{
 	"reset":     "\033[0m",
 }
 
+var DebugStyles = map[string]string{
+	"error":     "E:",
+	"warn":      "W:",
+	"info":      "I:",
+	"success":   "S:",
+	"debug":     "D:",
+	"headline":  "H:",
+	"subline":   "U:",
+	"important": "P:",
+	"query":     "Q:",
+	"reset":     "R:",
+}
+
 // NewDefaultFormatter constructs a new constructor with the given styles
 func NewDefaultFormatter(styles map[string]string) *DefaultFormatter {
 	return &DefaultFormatter{styles}

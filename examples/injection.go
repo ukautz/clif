@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/ukautz/clif.v0"
+	"gopkg.in/ukautz/clif.v1"
 	"reflect"
 	"regexp"
 	"strconv"

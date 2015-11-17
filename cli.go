@@ -94,6 +94,44 @@ func (this *Cli) AddDefaultOptions(opts ...*Option) *Cli {
 	return this
 }
 
+// Call executes command by building all input parameters based on objects
+// registered in the container and running the callback.
+func (this *Cli) Call(c *Command) ([]reflect.Value, error) {
+
+	// build callback arguments and execute
+	this.Register(c)
+	method := c.Call.Type()
+	input := make([]reflect.Value, method.NumIn())
+	named := NamedParameters(make(map[string]interface{}))
+	namedType := reflect.TypeOf(named).String()
+	namedIndex := -1
+	for i := 0; i < method.NumIn(); i++ {
+		t := method.In(i)
+		s := t.String()
+		if this.Registry.Has(s) {
+			input[i] = this.Registry.Get(s)
+		} else if s == namedType {
+			if namedIndex > -1 {
+				return nil, fmt.Errorf("Callback has more than the one allowed input parameter of type %s, which is used to inject named parameters", namedType)
+			}
+			namedIndex = i
+		} else {
+			return nil, fmt.Errorf("Callback parameter of type %s for command \"%s\" was not found in registry", s, c.Name)
+		}
+	}
+	if namedIndex > -1 {
+		this.Registry.Reduce(func(name string, value interface{}) bool {
+			if strings.Index(name, "N:") == 0 {
+				named[name[2:]] = value
+			}
+			return false
+		})
+		input[namedIndex] = reflect.ValueOf(NamedParameters(named))
+	}
+
+	return c.Call.Call(input), nil
+}
+
 // Herald registers command constructors, which will be executed in `Run()`.
 func (this *Cli) Herald(cmd ...HeraldCallback) *Cli {
 	for _, c := range cmd {
@@ -154,17 +192,9 @@ func (this *Cli) RunWith(args []string) {
 		}
 	}
 
-	// determine command or print out default
-	name := ""
-	cargs := []string{}
-	if len(args) < 1 || (this.DefaultCommand == "list" && len(args) == 1 && (args[0] == "-h" || args[0] == "--help")) {
-		name = this.DefaultCommand
-	} else {
-		name = args[0]
-		cargs = args[1:]
-	}
-
-	if c, ok := this.Commands[name]; ok {
+	// extract & continue with command
+	cname, cargs := this.SeparateArgs(args)
+	if c, ok := this.Commands[cname]; ok {
 
 		// parse arguments & options
 		err := c.Parse(cargs)
@@ -187,46 +217,46 @@ func (this *Cli) RunWith(args []string) {
 			}
 		}
 	} else {
-		Die("Command \"%s\" unknown", args[0])
+		if cname == "" && len(args) > 0 {
+			cname = args[0]
+		}
+		Die("Command \"%s\" unknown", cname)
 	}
 }
 
-// Call executes command by building all input parameters based on objects
-// registered in the container and running the callback.
-func (this *Cli) Call(c *Command) ([]reflect.Value, error) {
-
-	// build callback arguments and execute
-	this.Register(c)
-	method := c.Call.Type()
-	input := make([]reflect.Value, method.NumIn())
-	named := NamedParameters(make(map[string]interface{}))
-	namedType := reflect.TypeOf(named).String()
-	namedIndex := -1
-	for i := 0; i < method.NumIn(); i++ {
-		t := method.In(i)
-		s := t.String()
-		if this.Registry.Has(s) {
-			input[i] = this.Registry.Get(s)
-		} else if s == namedType {
-			if namedIndex > -1 {
-				return nil, fmt.Errorf("Callback has more than the one allowed input parameter of type %s, which is used to inject named parameters", namedType)
+// SeparateArgs takes (command line) args and tries to separate command name and
+// the actual args & options
+func (this *Cli) SeparateArgs(args []string) (string, []string) {
+	// determine command or fallback to default
+	// command name must NOT be first arg anymore, but first argument which is
+	// not an option i.e. does not begin with "-".
+	//
+	// With "foo" as command name, the following is valid:
+	//  ./cli foo --bar boing baz
+	//  ./cli --bar=boing foo baz
+	//  ./cli foo baz --bar=boing
+	// And the following is invalid
+	//  ./cli --bar boing baz foo
+	//  ./cli baz --bar foo
+	//  ./cli --bar baz foo
+	name := ""
+	largs := len(args)
+	cargs := []string{}
+	if largs < 1 || (this.DefaultCommand == "list" && largs == 1 && (args[0] == "-h" || args[0] == "--help")) {
+		name = this.DefaultCommand
+	} else {
+		found := false
+		for _, arg := range args {
+			if found || strings.Index(arg, "-") == 0 {
+				cargs = append(cargs, arg)
+			} else {
+				name = arg
+				found = true
 			}
-			namedIndex = i
-		} else {
-			return nil, fmt.Errorf("Callback parameter of type %s for command \"%s\" was not found in registry", s, c.Name)
 		}
 	}
-	if namedIndex > -1 {
-		this.Registry.Reduce(func(name string, value interface{}) bool {
-			if strings.Index(name, "N:") == 0 {
-				named[name[2:]] = value
-			}
-			return false
-		})
-		input[namedIndex] = reflect.ValueOf(NamedParameters(named))
-	}
 
-	return c.Call.Call(input), nil
+	return name, cargs
 }
 
 // SetDefaultCommand is builder method and overwrites the default command ("list") with something else

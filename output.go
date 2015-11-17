@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"github.com/ukautz/clif/output"
 )
 
 // Output is interface for
@@ -15,11 +16,20 @@ type Output interface {
 	// Printf applies format (renders styles) and writes to output
 	Printf(msg string, args ...interface{})
 
+	// Progress creates new progress bar output
+	Progress(size int) *output.ProgressBar
+
 	// Sprintf applies format (renders styles) and returns as string
 	Sprintf(msg string, args ...interface{}) string
 
 	// SetFormatter is builder method and replaces current formatter
 	SetFormatter(f Formatter) Output
+
+	// Table creates a table object
+	Table(header []string) *output.Table
+
+	// Writer returns the `io.Writer` used by this output
+	Writer() io.Writer
 }
 
 // DefaultOutput is the default used output type
@@ -53,6 +63,11 @@ func NewColorOutput(io io.Writer) *DefaultOutput {
 	return NewOutput(io, NewDefaultFormatter(DefaultStyles))
 }
 
+// NewDebugOutput is used for debugging the color formatter
+func NewDebugOutput(io io.Writer) *DefaultOutput {
+	return NewOutput(io, NewDefaultFormatter(DebugStyles))
+}
+
 func (this *DefaultOutput) SetFormatter(f Formatter) Output {
 	this.fmt = f
 	return this
@@ -66,6 +81,19 @@ func (this *DefaultOutput) Printf(msg string, args ...interface{}) {
 	this.io.Write([]byte(this.Sprintf(msg, args...)))
 }
 
+func (this *DefaultOutput) Progress(size int) *output.ProgressBar {
+	pb := output.NewProgressBar(size)
+	return pb
+}
+
 func (this *DefaultOutput) Sprintf(msg string, args ...interface{}) string {
 	return this.fmt.Format(fmt.Sprintf(msg, args...))
+}
+
+func (this *DefaultOutput) Table(headers []string) *output.Table {
+	return output.NewTable(headers)
+}
+
+func (this *DefaultOutput) Writer() io.Writer {
+	return this.io
 }

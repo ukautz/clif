@@ -222,7 +222,7 @@ func TestCliHeralds(t *testing.T) {
 		Convey("Heralding command does not add it to list", func() {
 			x := 0
 			app.Herald(func(c *Cli) *Command {
-				return NewCommand("foo", "fooing", func(){ x = 2 })
+				return NewCommand("foo", "fooing", func() { x = 2 })
 			})
 			So(len(app.Commands), ShouldEqual, 2)
 			So(len(app.Heralds), ShouldEqual, 1)
@@ -235,5 +235,62 @@ func TestCliHeralds(t *testing.T) {
 			})
 		})
 
+	})
+}
+
+
+var testCliSeparateArgs = []struct{
+	args []string
+	expectName string
+	expectArgs []string
+}{
+	{
+		args: []string{"foo", "--bar", "baz"},
+		expectName: "foo",
+		expectArgs: []string{"--bar", "baz"},
+	},
+	{
+		args: []string{"foo", "-bar", "baz"},
+		expectName: "foo",
+		expectArgs: []string{"-bar", "baz"},
+	},
+	{
+		args: []string{"foo", "baz", "--bar"},
+		expectName: "foo",
+		expectArgs: []string{"baz", "--bar"},
+	},
+	{
+		args: []string{"--bar", "foo", "baz"},
+		expectName: "foo",
+		expectArgs: []string{"--bar", "baz"},
+	},
+	{
+		args: []string{"--bar=boing", "foo", "baz"},
+		expectName: "foo",
+		expectArgs: []string{"--bar=boing", "baz"},
+	},
+	{
+		args: []string{"-bar=boing", "foo", "baz"},
+		expectName: "foo",
+		expectArgs: []string{"-bar=boing", "baz"},
+	},
+	{
+		args: []string{"--bar", "boing", "foo", "baz"},
+		expectName: "boing",
+		expectArgs: []string{"--bar", "foo", "baz"},
+	},
+}
+
+func TestCliSeparateArgs(t *testing.T) {
+	Convey("Separate command line args", t, func() {
+		app := New("My App", "1.0.0", "Testing app")
+
+		for i, test := range testCliSeparateArgs {
+			Convey(fmt.Sprintf("%d) From %v", i, test.args), func() {
+				cname, cargs := app.SeparateArgs(test.args)
+				So(cname, ShouldEqual, test.expectName)
+				So(cargs, ShouldResemble, test.expectArgs)
+			})
+		}
 	})
 }

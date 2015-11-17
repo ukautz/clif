@@ -2,7 +2,7 @@
 
 package main
 
-import "gopkg.in/ukautz/clif.v0"
+import "gopkg.in/ukautz/clif.v1"
 
 func main() {
 	c := clif.New("My App", "1.0.0", "An example application").

@@ -184,7 +184,6 @@ CLIF can deal with arguments and options. The difference being:
 
 * **Arguments** come after the command name. They are identified by their position.
 * **Options** have no fixed position. They are identified by their `--opt-name` (or alias, eg `-O`)
-* Both **Arguments** and **Options** come *after* the comand (eg `./my-cli command foo --bar baz`)
 
 Of course you can use arguments and options at the same time..
 
@@ -231,7 +230,9 @@ func callbackFunctionI(c *clif.Command) {
 
 #### Options
 
-Options have no fixed position. They are referenced by their name (eg `--name`) or alias (eg `-n`).
+Options have no fixed position, meaning `./app --foo --bar` and `./app --bar --foo` are equivalent. Options are referenced by their name (eg `--name`) or alias (eg `-n`). Unless the option is a flag (see below) it must have a value. The value must immediately follow the option. Valid forms are: `--name value`, `--name=value`, `-n value` and `-n=value`.
+
+Options must come before the command, unless they use the `=` separator. For example: `./app command --opt value` is valid, `./app --opt=value command` is valid but `./app --opt value command` is not valid (since it becomes impossible to distinguish between command and value).
 
 ``` go
 cmd := clif.NewCommand("hello", "A description", callBackFunction)
@@ -247,9 +248,9 @@ Now:
 $ ./my-app hello --other bar -n Me -O foo
 #                       ^       ^    ^
 #                       |       |    |
-#                       |       |  second other opt
-#                       |   name opt
-#                  first other opt
+#                       |       |  second other opt with value
+#                       |   name opt with value
+#                  first other opt with value
 ```
 
 You can access options the same way as arguments, just use `Option()` instead.
@@ -264,7 +265,7 @@ func callbackFunctionI(c *clif.Command) {
 
 ##### Flags
 
-There is a special kind of option, which does not expect a parameter: the flag.
+There is a special kind of option, which does not expect a parameter: the flag. As options, their position is arbitrary.
 
 ``` go
 flag := clif.NewOption("my-flag", "f", "Something ..", "", false, false).IsFlag()
@@ -487,6 +488,23 @@ There three built-in color styles (of course, you can extend them or add your ow
 1. `DefaultStyles` - as you can see on this page
 1. `SunburnStyles` - more yellow'ish
 1. `WinterStyles` - more blue'ish
+
+
+#### Helpers
+
+Currently there are two output helpers available:
+
+1. **Table renderer**: Render datasets in tables
+2. **Progress bar**: Visualize arbitrary progress
+
+##### Table
+
+
+##### Progress bar
+
+```go
+func
+pb := out.
 
 
 Real-life example

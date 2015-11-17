@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 // Input is an interface for input helping. It provides shorthand methods for
@@ -45,9 +46,12 @@ func NewDefaultInput(in io.Reader, out Output) *DefaultInput {
 	return &DefaultInput{in, out}
 }
 
-var RenderAskQuestion = func(question string) string {
-	return "<query>"+ strings.TrimRight(question, " ")+ "<reset> "
-}
+var (
+	RenderAskQuestion = func(question string) string {
+		return "<query>"+ strings.TrimRight(question, " ")+ "<reset> "
+	}
+	RenderInputRequiredError = fmt.Errorf("Input required")
+)
 
 func (this *DefaultInput) Ask(question string, check func(string) error) string {
 	if check == nil {
@@ -55,16 +59,21 @@ func (this *DefaultInput) Ask(question string, check func(string) error) string 
 			if len(in) > 0 {
 				return nil
 			} else {
-				return fmt.Errorf("Input required")
+				return RenderInputRequiredError
 			}
 		}
 	}
 	reader := bufio.NewReader(this.in)
 	for {
 		this.out.Printf(RenderAskQuestion(question))
-		if line, _, err := reader.ReadLine(); err != nil {
+		line, _, err := reader.ReadLine()
+		for err == io.EOF {
+			<-time.After(time.Millisecond)
+			line, _, err = reader.ReadLine()
+		}
+		if err != nil {
 			this.out.Printf("<warn>%s<reset>\n\n", err)
-		} else if err := check(string(line)); err != nil {
+		} else if err = check(string(line)); err != nil {
 			this.out.Printf("<warn>%s<reset>\n\n", err)
 		} else {
 			return string(line)
