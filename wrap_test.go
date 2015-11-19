@@ -1,4 +1,4 @@
-package output
+package clif
 import (
 	"testing"
 	. "github.com/smartystreets/goconvey/convey"
@@ -45,6 +45,14 @@ var testsWrapText = []struct{
 	{
 		from: "xx foobarbazfoobarbazfoobarbaz yy",
 		expect: "xx\nfoobarbazfoo\nbarbazfoobar\nbaz yy",
+	},
+	{
+		from: "foo bar baz foo bar baz",
+		expect: "foo bar baz\nfoo bar baz",
+	},
+	{
+		from: "\033[34mfoo\033[0m bar baz foo bar baz",
+		expect: "\033[34mfoo\033[0m bar baz\nfoo bar baz",
 	},
 }
 

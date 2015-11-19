@@ -1,4 +1,4 @@
-package output
+package clif
 
 import (
 	"regexp"
@@ -11,9 +11,8 @@ var (
 	rxRightTrim   = regexp.MustCompile(`\s+$`)
 )
 
-
 // NewTableCol creates a new table column object from given content
-func NewTableCol(content string) *TableCol {
+func NewTableCol(row *TableRow, content string) *TableCol {
 	this := &TableCol{}
 	return this.SetContent(content)
 }
@@ -21,33 +20,24 @@ func NewTableCol(content string) *TableCol {
 // Render returns wrapped content, max content line width and content line count.
 // See `LineCount()`, `Width()` and `Content()` for more informations.
 func (this *TableCol) Render(maxWidth uint) (content string, width, lineCount uint) {
-	if this.lineCount == 1 && (maxWidth == 0 || maxWidth >= this.width) {
-		content = *this.content
-		width = this.width
+	content = this.Content(maxWidth)
+	lines := strings.Split(content, "\n")
+	rendered := make([]string, len(lines))
+	for idx, line := range lines {
+		lineLen := uint(StringLength(line))
+		if lineLen > width {
+			width = lineLen
+		}
 		if maxWidth > 0 {
-			if diff := maxWidth - this.width; diff > 0 {
-				content += strings.Repeat(" ", int(diff))
-				width += diff
+			if diff := maxWidth - lineLen; diff > 0 {
+				//fmt.Printf(">> EXTEND LINE (%d VS %d) BY %d\n", lineLen, maxWidth, diff)
+				line += strings.Repeat(" ", int(diff))
 			}
 		}
-		lineCount = this.lineCount
-	} else {
-		content = this.Content(maxWidth)
-		lines := strings.Split(content, "\n")
-		for idx, line := range lines {
-			l := uint(StringLength(line))
-			if l > width {
-				width = l
-			}
-			if maxWidth > 0 {
-				if diff := maxWidth - l; diff > 0 {
-					lines[idx] += strings.Repeat(" ", int(diff))
-				}
-			}
-			lineCount++
-		}
-		content = strings.Join(lines, "\n")
+		lineCount++
+		rendered[idx] = line
 	}
+	content = strings.Join(rendered, "\n")
 	return
 }
 
@@ -76,10 +66,11 @@ func (this *TableCol) LineCount(maxWidth ...uint) uint {
 // is wrapped to the maxWidth limitation. Words will be split if they exceed
 // the maxWidth value.
 func (this *TableCol) Content(maxWidth ...uint) string {
-	if len(maxWidth) == 0 || maxWidth[0] == 0 || maxWidth[0] >= this.width {
-		return *this.content
+	rendered := this.renderedContent()
+	if len(maxWidth) > 0 && maxWidth[0] > 0 {
+		return WrapStringExtreme(rendered, maxWidth[0])
 	}
-	return WrapStringExtreme(*this.content, maxWidth[0])
+	return rendered
 }
 
 // ContentPrefixed
@@ -92,29 +83,41 @@ func (this *TableCol) ContentPrefixed(prefix string, maxWidth ...uint) string {
 }
 
 func (this *TableCol) Width(maxWidth ...uint) uint {
-	if len(maxWidth) == 0 || maxWidth[0] == 0 {
-		return this.width
-	}
-	lines := strings.Split(this.Content(maxWidth...), "\n")
-	return this.maxLineWidth(lines)
+	return this.maxLineWidth(maxWidth...)
 }
 
 func (this *TableCol) SetContent(content string) *TableCol {
 	content = rxRightTrim.ReplaceAllString(content, "")
 	this.content = &content
 	lines := strings.Split(content, "\n")
-	this.width = this.maxLineWidth(lines)
 	this.lineCount = uint(len(lines))
 	return this
 }
 
-func (this *TableCol) maxLineWidth(lines []string) (width uint) {
-	for _, line := range lines {
+func (this *TableCol) SetRenderer(renderer func(string) string) *TableCol {
+	this.renderer = renderer
+	return this
+}
+
+func (this *TableCol) maxLineWidth(maxWidth ...uint) (width uint) {
+	rendered := this.renderedLines(maxWidth...)
+	for _, line := range rendered {
 		if l := uint(StringLength(line)); l > width {
 			width = l
 		}
 	}
 	return
+}
+
+func (this *TableCol) renderedLines(maxWidth ...uint) []string {
+	return strings.Split(this.Content(maxWidth...), "\n")
+}
+
+func (this *TableCol) renderedContent() string {
+	if this.renderer != nil {
+		return this.renderer(*this.content)
+	}
+	return *this.content
 }
 
 func (this *TableCol) SetRow(row *TableRow) *TableCol {

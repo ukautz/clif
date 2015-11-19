@@ -1,4 +1,4 @@
-package output
+package clif
 
 import (
 	"fmt"
@@ -85,6 +85,14 @@ var (
 )
 
 func NewProgressBar(size int) *ProgressBar {
+	if size == 0 {
+		if s, err := TermWidth(); err != nil {
+			size = s
+		} else {
+			s = TERM_DEFAULT_WIDTH
+		}
+	}
+
 	return &ProgressBar{
 		size:                     size,
 		renderWidth:              PB_DEFAULT_RENDER_WIDTH,
@@ -218,7 +226,7 @@ func (this *ProgressBar) Render() string {
 	infoPrefix := this.buildProgressInfoPrefix(percentage, size)
 	infoSuffix := this.buildProgressInfoSuffix(percentage, size)
 	infoSize := StringLength(infoPrefix) + StringLength(infoSuffix) +
-	StringLength(this.style.LeftBorder) + StringLength(this.style.RightBorder)
+		StringLength(this.style.LeftBorder) + StringLength(this.style.RightBorder)
 	width := this.renderWidth - infoSize
 	if width == 0 {
 		width = 1

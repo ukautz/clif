@@ -1,10 +1,9 @@
-package output
+package clif
 
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
-	"unicode/utf8"
 )
 
 func _testRenderProgressBar(pb *ProgressBar, pos int) string {

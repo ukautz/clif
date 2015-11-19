@@ -1,0 +1,13 @@
+ *H1*               │ *H2*               │ *H3*                
+────────────────────┼────────────────────┼─────────────────────
+ foofoofoofoofoofoo │ bar                │ baz                 
+ foofoofoofoofoofoo │                    │                     
+ foofoofoo          │                    │                     
+────────────────────┼────────────────────┼─────────────────────
+ foo                │ barbarbarbarbarbar │ baz                 
+                    │ barbarbarbarbarbar │                     
+                    │ barbarbar          │                     
+────────────────────┼────────────────────┼─────────────────────
+ foo                │ bar                │ bazbazbazbazbazbazb 
+                    │                    │ azbazbazbazbazbazba 
+                    │                    │ zbazbaz             

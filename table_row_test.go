@@ -1,4 +1,4 @@
-package output
+package clif
 import (
 	"testing"
 	. "github.com/smartystreets/goconvey/convey"

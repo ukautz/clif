@@ -38,7 +38,7 @@ func TestDefaultFormatterFormat(t *testing.T) {
 				"reset":    "R!",
 			})
 			s := f.Format("Foo <headline>bar baz\ndings<reset> baz")
-			So(s, ShouldEqual, "Foo H!barR! baz")
+			So(s, ShouldEqual, "Foo H!bar baz\ndingsR! baz")
 		})
 	})
 }

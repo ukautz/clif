@@ -3,12 +3,11 @@
 package main
 
 import (
-	"github.com/ukautz/clif"
-	"os"
 	"fmt"
+	"github.com/ukautz/clif"
 )
 
-var forceUsers = [][]string{
+var users = [][]string{
 	{
 		"Yoda",
 		"Very, very old",
@@ -16,7 +15,7 @@ var forceUsers = [][]string{
 	},
 	{
 		"Luke Skywalker",
-		"<info>Not that old</reset>",
+		"Not that old",
 		"A bit, but not that much",
 	},
 	{
@@ -24,26 +23,57 @@ var forceUsers = [][]string{
 		"Old dude",
 		"He is Lukes father! What do you think?",
 	},
+	{
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"x",
+		"x",
+	},
+	{
+		"x",
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"x",
+	},
+	{
+		"x",
+		"x",
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+	},
+	{
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"x",
+	},
+	{
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"x",
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+	},
+	{
+		"x",
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+	},
+	{
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+	},
 }
 
 func printTable(out clif.Output) {
 	out.Printf("<headline>Generating table</headline>\n\n")
 	headers := []string{"Name", "Age", "Force"}
 	table := out.Table(headers)
-	table.Style.ContentRenderer = func(str string) string {
-		fmt.Printf("\nOUT: \"%s\"\n", str)
-		return out.Sprintf(str)
+	for _, user := range users {
+		table.AddRow(user)
 	}
-	for _, row := range forceUsers {
-		table.AddRow(row)
-	}
-	fmt.Println(table.Render(80))
+	fmt.Println(table.Render(0))
 }
 
 func main() {
 	cli := clif.New("My App", "1.0.0", "An example application").
 		New("demo", "Print the progress bar", printTable).
 		SetDefaultCommand("demo")
-	cli.SetOutput(clif.NewDebugOutput(os.Stdout))
+	//cli.SetOutput(clif.NewDebugOutput(os.Stdout))
 	cli.Run()
 }

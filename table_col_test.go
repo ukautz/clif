@@ -1,6 +1,7 @@
-package output
+package clif
 
 import (
+	"bytes"
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"strings"
@@ -124,7 +125,7 @@ func TestTableCol(t *testing.T) {
 				out = fmt.Sprintf("%s ... (%d)", out[0:30], l)
 			}
 			Convey(fmt.Sprintf("%d) \"%s\"", idx, out), func() {
-				col := NewTableCol(test.content)
+				col := NewTableCol(nil, test.content)
 
 				Convey("Rendered without width restrictions", func() {
 					So(col.Content(), ShouldEqual, test.expectContent)
@@ -133,13 +134,54 @@ func TestTableCol(t *testing.T) {
 				})
 
 				Convey("Rendered with width restrictions", func() {
+					//fmt.Printf("\n  IS CNT=%s, OUGHT CNT=%s\n", col.Content(10), test.expectCalcContent)
 					So(col.Content(10), ShouldEqual, test.expectCalcContent)
+					//fmt.Printf("\n  IS WIDTH=%d, OUGHT WIDTH=%d\n", col.Width(10), test.expectCalcWidth)
 					So(col.Width(10), ShouldEqual, test.expectCalcWidth)
 					So(col.LineCount(10), ShouldEqual, test.expectCalcLineCount)
 
 					rendered, _, _ := col.Render(10)
+					//fmt.Printf("\n  IS=\"%s\", OUGHT=\"%s\"\n", strings.Replace(rendered, "\n", " ** ", -1), strings.Replace(test.expectRenderedContent, "\n", " ** ", -1))
 					So(rendered, ShouldEqual, test.expectRenderedContent)
 				})
+			})
+		}
+	})
+}
+
+func TestTableColWithFormatting(t *testing.T) {
+	Convey("Create new col with formatting", t, func() {
+		tests := map[string][]string{
+			"Unformatted": []string{
+				"foo bar baz foo bar baz!",
+				strings.Join([]string{
+					"foo bar   ",
+					"baz foo   ",
+					"bar baz!  ",
+				}, "\n"),
+			},
+			"Formatted": []string{
+				"foo <info>bar baz foo bar<reset> baz!",
+				strings.Join([]string{
+					"foo \033[34mbar   \033[0m",
+					"\033[34mbaz foo   \033[0m",
+					"\033[34mbar\033[0m baz!  ",
+				}, "\n"),
+			},
+		}
+		for name, ref := range tests {
+			Convey(fmt.Sprintf("%s\n", name), func() {
+
+				buf := bytes.NewBuffer(nil)
+				out := NewColorOutput(buf)
+				col := NewTableCol(nil, ref[0])
+				col.SetRenderer(DefaultOutputTableContentRenderer(out))
+
+				rnd := col.renderedContent()
+
+				res, _, _ := col.Render(10)
+				_testDumpStrings(res, rnd)
+				So(res, ShouldEqual, ref[1])
 			})
 		}
 	})

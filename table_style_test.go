@@ -1,46 +1,59 @@
-package output
+package clif
 
 import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 	"io/ioutil"
 	"regexp"
+	"testing"
 )
+
+var _testTableRenderHeader = func(str string) string {
+	//fmt.Printf("\n>>> USING HEADER RENDERER ON \"%s\"\n", strings.Replace(str, "\n", " ** ", -1))
+	rxRight := regexp.MustCompile(`^(\s*)\**(\S.+?)\**(\s*)$`)
+	if rxRight.MatchString(str) {
+		match := rxRight.FindStringSubmatch(str)
+		prefix := match[1]
+		word := match[2]
+		suffix := match[3]
+		return fmt.Sprintf("%s*%s*%s", prefix, word, suffix)
+	}
+	return str
+}
 
 var testsTableStyle = []struct {
 	data           [][]string
 	expectedWidths []uint
-	renderedTable string
+	renderedTable  string
 }{
 	{
 		data: [][]string{
 			{"foo", "bar", "baz"},
 		},
 		expectedWidths: []uint{17, 17, 19},
-		renderedTable: `fixtures/table_0`,
+		renderedTable:  `fixtures/table_0`,
 	},
 	{
 		data: [][]string{
 			{"foofoofoofoofoo", "bar", "baz"},
 		},
-		expectedWidths: []uint{37, 7, 9},
-		renderedTable: `fixtures/table_1`,
+		expectedWidths: []uint{26, 12, 15},
+		renderedTable:  `fixtures/table_1`,
 	},
 	{
 		data: [][]string{
 			{"foo\nfoo\nfoo\nfoo\nfoo", "bar", "baz"},
 		},
 		expectedWidths: []uint{17, 17, 19},
-		renderedTable: `fixtures/table_2`,
+		renderedTable:  `fixtures/table_2`,
 	},
 	{
 		data: [][]string{
 			{"foofoofoofoofoo", "bar", "baz"},
 			{"foo", "barbarbarbarbar", "baz"},
 		},
-		expectedWidths: []uint{23, 23, 7},
-		renderedTable: `fixtures/table_3`,
+		expectedWidths: []uint{21, 21, 11},
+		renderedTable:  `fixtures/table_3`,
 	},
 	{
 		data: [][]string{
@@ -49,7 +62,7 @@ var testsTableStyle = []struct {
 			{"foo", "bar", "bazbazbazbazbaz"},
 		},
 		expectedWidths: []uint{17, 17, 19},
-		renderedTable: `fixtures/table_4`,
+		renderedTable:  `fixtures/table_4`,
 	},
 	{
 		data: [][]string{
@@ -58,7 +71,18 @@ var testsTableStyle = []struct {
 			{"foo", "bar", "bazbazbazbazbazbazbazbazbazbazbazbazbazbazbaz"},
 		},
 		expectedWidths: []uint{17, 17, 19},
-		renderedTable: `fixtures/table_5`,
+		renderedTable:  `fixtures/table_5`,
+	},
+	{
+		data: [][]string{
+			{
+				"foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo",
+				"bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar",
+				"baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz",
+			},
+		},
+		expectedWidths: []uint{17, 17, 19},
+		renderedTable:  `fixtures/table_6`,
 	},
 }
 
@@ -69,6 +93,7 @@ func TestTableStyle(t *testing.T) {
 			Convey(fmt.Sprintf("%d)", idx), func() {
 				table := NewTable(headers)
 				style := NewDefaultTableStyle()
+				table.Style = style
 				for _, row := range test.data {
 					table.AddRow(row)
 				}
@@ -82,50 +107,27 @@ func TestTableStyle(t *testing.T) {
 					}
 					So(waste, ShouldEqual, 7)
 					So(total, ShouldEqual, 60)
+					//fmt.Printf("EXP WIDTH: %v -- IS WIDTH: %v\n", test.expectedWidths, widths)
 					So(test.expectedWidths, ShouldResemble, widths)
 				})
 
 				Convey("Render table", func() {
-					style.HeaderRenderer = func(str string) string {
-						rxRight := regexp.MustCompile(`^(.+\S+)(\s+)$`)
-						if rxRight.MatchString(str) {
-							match := rxRight.FindStringSubmatch(str)
-							word := match[1]
-							spaces := match[2]
-							if len(spaces) > 2 {
-								return fmt.Sprintf("*%s*%s", word, spaces[0:len(spaces)-2])
-							}
-						}
-						return str
-					}
+					style.HeaderRenderer = _testTableRenderHeader
 					out := style.Render(table, 60)
-					//fmt.Printf("\nALL:\n--\n%s\n--\n", out)
 
 					expect, _ := ioutil.ReadFile(test.renderedTable)
+					//fmt.Printf("\n--IS: \n%s\n---\n-- EXPECT: \n%s\n--\n", out, expect)
 					So(out, ShouldResemble, string(expect))
 				})
 
-				if idx == 0 {
-					Convey("Render table without top & bottom", func() {
-						style = NewDefaultTableStyle()
-						style.Top = ""
-						style.Bottom = ""
-						style.HeaderRenderer = func(str string) string {
-							rxRight := regexp.MustCompile(`^(.+\S+)(\s+)$`)
-							if rxRight.MatchString(str) {
-								match := rxRight.FindStringSubmatch(str)
-								word := match[1]
-								spaces := match[2]
-								if len(spaces) > 2 {
-									return fmt.Sprintf("*%s*%s", word, spaces[0:len(spaces)-2])
-								}
-							}
-							return str
-						}
+				if test.renderedTable == "fixtures/table_5" {
+					Convey("Render table with open style", func() {
+						style = copyTableStyle(OpenTableStyle)
+						style.HeaderRenderer = _testTableRenderHeader
 						out := style.Render(table, 60)
-						//fmt.Printf("\nALL:\n--\n%s\n--\n", out)
 
-						expect, _ := ioutil.ReadFile(test.renderedTable+ "_light")
+						expect, _ := ioutil.ReadFile(test.renderedTable + "_open")
+						//fmt.Printf("\n--IS: \n%s\n---\n-- EXPECT: \n%s\n--\n", out, expect)
 						So(out, ShouldResemble, string(expect))
 					})
 				}

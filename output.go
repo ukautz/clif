@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"github.com/ukautz/clif/output"
+	"strings"
 )
 
 // Output is interface for
@@ -17,7 +17,7 @@ type Output interface {
 	Printf(msg string, args ...interface{})
 
 	// Progress creates new progress bar output
-	Progress(size int) *output.ProgressBar
+	Progress(size int) *ProgressBar
 
 	// Sprintf applies format (renders styles) and returns as string
 	Sprintf(msg string, args ...interface{}) string
@@ -26,7 +26,7 @@ type Output interface {
 	SetFormatter(f Formatter) Output
 
 	// Table creates a table object
-	Table(header []string) *output.Table
+	Table(header []string) *Table
 
 	// Writer returns the `io.Writer` used by this output
 	Writer() io.Writer
@@ -37,6 +37,22 @@ type DefaultOutput struct {
 	fmt Formatter
 	io  io.Writer
 }
+
+var (
+	DefaultOutputTableHeaderRenderer = func(out Output) func(string) string {
+		return func(content string) string {
+			return strings.Join(SplitFormattedString(out.Sprintf("<headline>%s<reset>", content)), "\n")
+		}
+	}
+	DefaultOutputTableContentRenderer = func(out Output) func(string) string {
+		return func(content string) string {
+			from := strings.Replace(content, "\n", "<BR>", -1)
+			from = rxControlCharacters.ReplaceAllString(from, "<CTRL>")
+			//fmt.Printf("\n>> CONTENT FROM \"%s\"\n", from)
+			return strings.Join(SplitFormattedString(out.Sprintf(content)), "\n")
+		}
+	}
+)
 
 // NewOutput generates a new (default) output with provided io writer (if nil
 // then `os.Stdout` is used) and a formatter
@@ -81,8 +97,8 @@ func (this *DefaultOutput) Printf(msg string, args ...interface{}) {
 	this.io.Write([]byte(this.Sprintf(msg, args...)))
 }
 
-func (this *DefaultOutput) Progress(size int) *output.ProgressBar {
-	pb := output.NewProgressBar(size)
+func (this *DefaultOutput) Progress(size int) *ProgressBar {
+	pb := NewProgressBar(size)
 	return pb
 }
 
@@ -90,8 +106,12 @@ func (this *DefaultOutput) Sprintf(msg string, args ...interface{}) string {
 	return this.fmt.Format(fmt.Sprintf(msg, args...))
 }
 
-func (this *DefaultOutput) Table(headers []string) *output.Table {
-	return output.NewTable(headers)
+func (this *DefaultOutput) Table(headers []string) *Table {
+	table := NewTable(headers)
+	table.Style = copyTableStyle(DefaultTableStyle)
+	table.Style.HeaderRenderer = DefaultOutputTableHeaderRenderer(this)
+	table.Style.ContentRenderer = DefaultOutputTableContentRenderer(this)
+	return table
 }
 
 func (this *DefaultOutput) Writer() io.Writer {

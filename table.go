@@ -1,4 +1,4 @@
-package output
+package clif
 
 import (
 	"fmt"
@@ -17,9 +17,6 @@ type (
 
 		// colAmount is the amount of cols per row (fixed size)
 		colAmount uint
-
-		// maxTotalWidth is the maximum total width of all columns
-		maxTotalWidth uint
 
 		// rowAmount is the amount of rows
 		rowAmount uint
@@ -56,7 +53,6 @@ type (
 	TableRow struct {
 		// MaxLineCount is the maximum amount of
 		MaxLineCount uint
-		TotalWidth   uint
 		ColAmount    uint
 		Cols         []*TableCol
 		table        *Table
@@ -69,9 +65,10 @@ type (
 		// LineCount contains the amount of lines in the content
 		lineCount uint
 
-		// Width is max amount of characters of the largest individual line of the content
-		width uint
+		// renderer is the content renderer.. see `TableStyle.(Content|Header)Renderer`
+		renderer func(content string) string
 
+		// row is back-reference to row
 		row *TableRow
 	}
 )
@@ -134,11 +131,7 @@ func (this *Table) SetRow(idx uint, cols []string) error {
 	}
 	if idx < this.colAmount {
 		row := NewTableRow(cols).SetTable(this)
-		oldTotalWidth := this.Rows[idx].TotalWidth
 		this.Rows[idx] = row
-		if oldTotalWidth == this.maxTotalWidth {
-			this.refresh()
-		}
 	} else if idx > this.colAmount {
 		if this.AllowEmptyFill {
 			empty := make([]string, this.colAmount)
@@ -166,7 +159,7 @@ func (this *Table) SetColumn(rowIdx, colIdx uint, content string) error {
 		return fmt.Errorf("Cannot set row at index %d -> Only %d rows in data", rowIdx, this.rowAmount)
 	}
 	if rowIdx < this.colAmount {
-		this.Rows[rowIdx].Cols[colIdx] = NewTableCol(content).SetRow(this.Rows[rowIdx])
+		this.Rows[rowIdx].Cols[colIdx] = NewTableCol(this.Rows[rowIdx], content)
 	} else {
 		cols := make([]string, this.colAmount)
 		cols[colIdx] = content
@@ -179,9 +172,6 @@ func (this *Table) addRow(cols []string) {
 	row := NewTableRow(cols).SetTable(this)
 	this.Rows = append(this.Rows, row)
 	this.rowAmount++
-	if row.TotalWidth > this.maxTotalWidth {
-		this.maxTotalWidth = row.TotalWidth
-	}
 }
 
 func (this *Table) checkAddCols(cols []string) error {
@@ -192,14 +182,4 @@ func (this *Table) checkAddCols(cols []string) error {
 		return fmt.Errorf("Cannot add %d cols. Expected width is %d", l, this.colAmount)
 	}
 	return nil
-}
-
-func (this *Table) refresh() {
-	max := uint(0)
-	for _, row := range this.Rows {
-		if row.TotalWidth > max {
-			max = row.TotalWidth
-		}
-	}
-	this.maxTotalWidth = max
 }

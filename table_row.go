@@ -1,7 +1,8 @@
-package output
+package clif
 
 import (
 	"fmt"
+	"strings"
 )
 
 func NewTableRow(cols []string) *TableRow {
@@ -11,7 +12,7 @@ func NewTableRow(cols []string) *TableRow {
 		Cols:      make([]*TableCol, l),
 	}
 	for i, col := range cols {
-		this.SetCol(uint(i), NewTableCol(col))
+		this.SetCol(uint(i), NewTableCol(this, col))
 	}
 	return this
 }
@@ -21,11 +22,20 @@ func (this *TableRow) Render(totalWidth uint) (rendered []string, maxLineCount u
 	return this.RenderWithWidths(widths)
 }
 
+func (this *TableRow) Width(maxWidth ...uint) uint {
+	width := uint(0)
+	for _, col := range this.Cols {
+		width += col.Width(maxWidth...)
+	}
+	return width
+}
+
 func (this *TableRow) CalculateWidths(totalWidth uint) (colSize []uint) {
 	colSize = make([]uint, this.ColAmount)
 	factor := float64(1.0)
-	if totalWidth > 0 && totalWidth != this.TotalWidth {
-		factor = float64(totalWidth) / float64(this.TotalWidth)
+	actualWidth := this.Width()
+	if totalWidth > 0 && totalWidth != actualWidth {
+		factor = float64(totalWidth) / float64(actualWidth)
 	}
 	//fmt.Printf("\nTOTAL WIDTH: %d -> %d, FACTOR: %.2f\n", this.TotalWidth, totalWidth, factor)
 	usedWidth := uint(0)
@@ -37,6 +47,7 @@ func (this *TableRow) CalculateWidths(totalWidth uint) (colSize []uint) {
 			width = 0
 		} else {
 			if idx == lastCol { // last col get's it all
+				//fmt.Printf("  @@ LAST COL: TOTAL=%d, USED=%d, WIDTH=%d, FACTOR=%.3f\n", totalWidth, usedWidth, width, factor)
 				width += totalWidth - (usedWidth + width)
 			} else if width == 0 { //
 				width = 1
@@ -52,8 +63,17 @@ func (this *TableRow) CalculateWidths(totalWidth uint) (colSize []uint) {
 func (this *TableRow) RenderWithWidths(colWidths []uint) (rendered []string, maxLineCount uint) {
 	rendered = make([]string, this.ColAmount)
 	//fmt.Printf("\nTOTAL WIDTH: %d -> %d, FACTOR: %.2f\n", this.TotalWidth, totalWidth, factor)
+	//fmt.Printf("\nRENDER ROW WITH COL WIDTHS %v\n", colWidths)
 	for idx, col := range this.Cols {
+		//content, renderWidth, lineCount := col.Render(colWidths[idx])
 		content, _, lineCount := col.Render(colWidths[idx])
+		m := 0
+		for _, c := range strings.Split(content, "\n") {
+			if l := len(c); l > m {
+				m = l
+			}
+		}
+		//fmt.Printf(" %d) with width = %d, lines = %d, max width = %d, x max width = %d\n", idx, colWidths[idx], lineCount, renderWidth, m)
 		rendered[idx] = content
 		if lineCount > maxLineCount {
 			maxLineCount = lineCount
@@ -74,11 +94,14 @@ func (this *TableRow) SetCol(idx uint, col *TableCol) error {
 	if col.lineCount > this.MaxLineCount {
 		this.MaxLineCount = col.lineCount
 	}
-	if this.Cols[idx] != nil {
-		this.TotalWidth -= this.Cols[idx].width
-	}
-	this.TotalWidth += col.width
 	this.Cols[idx] = col
 	col.SetRow(this)
 	return nil
+}
+
+func (this *TableRow) SetRenderer(renderer func(string) string) *TableRow {
+	for _, col := range this.Cols {
+		col.SetRenderer(renderer)
+	}
+	return this
 }

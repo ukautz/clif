@@ -43,4 +43,12 @@ func TestOutput(t *testing.T) {
 		o.Printf("With <headline>formatted<reset> input")
 		So(b.String(), ShouldEqual, "WITH <HEADLINE>FORMATTED<RESET> INPUT")
 	})
+	Convey("Multi-line rendering", t, func() {
+		b := bytes.NewBuffer(nil)
+		o := NewColorOutput(b)
+		o.Printf("With <headline>formatted\nfoo\nbar\nbaz<reset> input")
+		s := o.Sprintf("With <headline>formatted\nfoo\nbar\nbaz<reset> input")
+		So(b.String(), ShouldEqual, "With \033[4;1mformatted\nfoo\nbar\nbaz\033[0m input")
+		So(b.String(), ShouldEqual, s)
+	})
 }
