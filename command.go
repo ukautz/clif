@@ -219,6 +219,11 @@ func (this *Command) AddArgument(v *Argument) *Command {
 	return this
 }
 
+// NewFlag adds a new flag option
+func (this *Command) NewFlag(name, alias, usage, _default string, multiple bool) *Command {
+	return this.AddOption(NewOption(name, alias, usage, _default, false, multiple).IsFlag())
+}
+
 // NewOption is builder method to construct and add a new option
 func (this *Command) NewOption(name, alias, usage, _default string, required, multiple bool) *Command {
 	return this.AddOption(NewOption(name, alias, usage, _default, required, multiple))

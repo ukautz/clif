@@ -152,14 +152,14 @@ func TestTableCol(t *testing.T) {
 func TestTableColWithFormatting(t *testing.T) {
 	Convey("Create new col with formatting", t, func() {
 		tests := map[string][]string{
-			"Unformatted": []string{
+			/*"Unformatted": []string{
 				"foo bar baz foo bar baz!",
 				strings.Join([]string{
 					"foo bar   ",
 					"baz foo   ",
 					"bar baz!  ",
 				}, "\n"),
-			},
+			},*/
 			"Formatted": []string{
 				"foo <info>bar baz foo bar<reset> baz!",
 				strings.Join([]string{
@@ -170,17 +170,16 @@ func TestTableColWithFormatting(t *testing.T) {
 			},
 		}
 		for name, ref := range tests {
-			Convey(fmt.Sprintf("%s\n", name), func() {
+			Convey(fmt.Sprintf("\n>>>>>>>> %s\n", name), func() {
 
 				buf := bytes.NewBuffer(nil)
 				out := NewColorOutput(buf)
 				col := NewTableCol(nil, ref[0])
 				col.SetRenderer(DefaultOutputTableContentRenderer(out))
 
-				rnd := col.renderedContent()
-
 				res, _, _ := col.Render(10)
-				_testDumpStrings(res, rnd)
+				//_testDumpStrings(res, ref[1])
+				//fmt.Printf("\033[0m-- IS:\n%s\n\033[0m-- SHOULD:\n%s\n\033[0m--", res, ref[1])
 				So(res, ShouldEqual, ref[1])
 			})
 		}

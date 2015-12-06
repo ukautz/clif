@@ -34,7 +34,7 @@ func SplitFormattedString(str string) []string {
 	result := []byte{}
 	for idx, c := range chars {
 		add := []byte{c}
-		if seq == 0 && c == 27 { // \033
+		if seq == 0 && IsControlCharStart(c) { // \033
 			seq++
 			cache = append(cache, c)
 			current = []byte{}
@@ -77,6 +77,11 @@ func SplitFormattedString(str string) []string {
 		}
 	}
 	return strings.Split(string(result), "\n")
+}
+
+// IsControlCharStart returns bool whether character is "\033" aka "\e"
+func IsControlCharStart(c byte) bool {
+	return c == 27
 }
 
 // Die is the default function executed on die. It can be used as a shorthand

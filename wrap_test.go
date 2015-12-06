@@ -10,7 +10,7 @@ var testsWrapText = []struct{
 	from string
 	expect string
 }{
-	{
+	/*{
 		from: "",
 		expect: "",
 	},
@@ -22,6 +22,19 @@ var testsWrapText = []struct{
 		from: "foo bar baz",
 		expect: "foo bar baz",
 	},
+	{
+		from: "foo   bar   baz",
+		expect: "foo bar baz",
+	},
+	{
+		from: "foobarbaz",
+		expect: "foobarbaz",
+	},*/
+	{
+		from: "foobarbaz foobarbaz",
+		expect: "foobarbaz foobarbaz",
+	},
+	/*
 	{
 		from: "foo bar baz foo bar baz",
 		expect: "foo bar baz\nfoo bar baz",
@@ -54,6 +67,13 @@ var testsWrapText = []struct{
 		from: "\033[34mfoo\033[0m bar baz foo bar baz",
 		expect: "\033[34mfoo\033[0m bar baz\nfoo bar baz",
 	},
+	{
+		from: "\033[34mfoo bar baz foo bar\033[0m baz",
+		expect: strings.Join([]string{
+			"\033[34mfoo bar baz\033[0m",
+			"\033[34mfoo bar\033[0m baz",
+		}, "\n"),
+	},*/
 }
 
 func TestWrapText(t *testing.T) {
@@ -61,7 +81,7 @@ func TestWrapText(t *testing.T) {
 		for idx, test := range testsWrapText {
 			out := strings.Replace(test.from, "\n", "\\n", -1)
 			Convey(fmt.Sprintf("%d) %s", idx, out), func() {
-				to := WrapStringExtreme(test.from, 12)
+				to := wrapStringX(test.from, 12, true)
 				So(to, ShouldEqual, test.expect)
 			})
 		}

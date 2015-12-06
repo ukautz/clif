@@ -3,6 +3,7 @@ package clif
 import (
 	"regexp"
 	"strings"
+	"fmt"
 )
 
 var (
@@ -24,18 +25,19 @@ func (this *TableCol) Render(maxWidth uint) (content string, width, lineCount ui
 	lines := strings.Split(content, "\n")
 	rendered := make([]string, len(lines))
 	for idx, line := range lines {
-		lineLen := uint(StringLength(line))
-		if lineLen > width {
-			width = lineLen
+		lineLen := StringLength(line)
+		if uint(lineLen) > width {
+			width = uint(lineLen)
 		}
 		if maxWidth > 0 {
-			if diff := maxWidth - lineLen; diff > 0 {
+			if diff := int(maxWidth) - lineLen; diff > 0 {
 				//fmt.Printf(">> EXTEND LINE (%d VS %d) BY %d\n", lineLen, maxWidth, diff)
-				line += strings.Repeat(" ", int(diff))
+				line += strings.Repeat(" ", diff)
 			}
 		}
 		lineCount++
 		rendered[idx] = line
+		fmt.Printf("\033[0mLINE %d (len: %d): \"%s\"\n\033[0m", idx, lineLen, line)
 	}
 	content = strings.Join(rendered, "\n")
 	return
@@ -67,6 +69,7 @@ func (this *TableCol) LineCount(maxWidth ...uint) uint {
 // the maxWidth value.
 func (this *TableCol) Content(maxWidth ...uint) string {
 	rendered := this.renderedContent()
+	fmt.Printf("\033m-- RENDERED:\n%s\n\033[0m--\n", rendered)
 	if len(maxWidth) > 0 && maxWidth[0] > 0 {
 		return WrapStringExtreme(rendered, maxWidth[0])
 	}

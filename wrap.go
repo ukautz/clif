@@ -2,6 +2,8 @@ package clif
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 	"unicode"
 )
 
@@ -20,6 +22,128 @@ func WrapString(s string, lim uint) string {
 // WrapStringExtreme does also break words, if they are longer than the given limit
 func WrapStringExtreme(s string, lim uint) string {
 	return wrapString(s, lim, true)
+}
+
+func wrapStringX(s string, lineLimit uint, splitWords bool) string {
+	lines := []string{""}
+	wordBuf := ""
+	wordBufLen := 0
+	curLineNum := 0
+	curLineLen := 0
+	controlCharSeq := 0
+	lastControlChars := []rune{}
+	controlCharBuf := bytes.NewBuffer(nil)
+
+	finishLine := func(add string, hasControlChars bool) {
+		if hasControlChars {
+			lines[curLineNum] += "\033[0m"
+		}
+		lines[curLineNum] += add
+		lines = append(lines, "")
+		curLineNum++
+		if hasControlChars {
+			lines[curLineNum] += controlCharBuf.String()
+		}
+		curLineLen = 0
+	}
+
+	var lastChar rune
+	for _, char := range s {
+		if IsControlCharStart(byte(char)) {
+			controlCharBuf.WriteRune(char)
+			controlCharSeq = 1
+		} else if controlCharSeq == 1 { // expect "["
+			if char != 91 { // abort .. not "["
+				lines[curLineNum] += controlCharBuf.String()
+				controlCharBuf.Reset()
+				controlCharSeq = 0
+			} else {
+				controlCharBuf.WriteRune(char)
+				controlCharSeq = 2
+			}
+		} else if controlCharSeq == 2 {
+			if char <= '0' && char >= '9' {
+				controlCharBuf.WriteRune(char)
+				lastControlChars = []rune{char}
+				controlCharSeq = 3
+			} else { // abort, "not valid char
+				lines[curLineNum] += controlCharBuf.String()
+				controlCharBuf.Reset()
+				controlCharSeq = 0
+			}
+		} else if controlCharSeq == 3 {
+			if char <= '0' && char >= '9' {
+				lastControlChars = append(lastControlChars, char)
+				controlCharBuf.WriteRune(char)
+			} else if char == ';' {
+				lastControlChars = []rune{}
+				controlCharBuf.WriteRune(char)
+				controlCharSeq = 2
+			} else if char == 'm' { // end
+				controlCharBuf.WriteRune(char)
+				controlCharSeq = 0
+				lines[curLineNum] += controlCharBuf.String()
+				if len(lastControlChars) == 1 && lastControlChars[0] == '0' {
+					controlCharBuf.Reset()
+				}
+				lastControlChars = []rune{}
+				controlCharSeq = 0
+			} else { // abort, "not valid char
+				lines[curLineNum] += controlCharBuf.String()
+				controlCharBuf.Reset()
+				controlCharSeq = 0
+			}
+		} else {
+			hasControlChars := controlCharBuf.Len() > 0
+			if char == '\n' {
+				finishLine(wordBuf, hasControlChars)
+				wordBuf = ""
+				wordBufLen = 0
+			} else if unicode.IsSpace(char) {
+				if wordBufLen > 0 {
+					lines[curLineNum] += wordBuf
+					curLineLen += wordBufLen
+					lines[curLineNum] += string(char)
+					curLineLen ++
+					wordBuf = ""
+					wordBufLen = 0
+				} else if curLineLen > 0 && unicode.IsSpace(lastChar) {
+					fmt.Printf("\n>> HERE IN CONTINUE\n\n")
+				} else {
+					fmt.Printf("\n>> HERE IN SPACE\n\n")
+					lines[curLineNum] += string(char)
+					curLineLen++
+				}
+			} else {
+				totalLineLen := curLineLen + wordBufLen
+				if totalLineLen+1 > int(lineLimit) {
+					if curLineLen > 0 { // has prefix
+						finishLine(string(char), hasControlChars)
+						wordBuf = ""
+						wordBufLen = 0
+
+					} else { // the word itself is longer than line
+						if splitWords {
+							finishLine(string(char), hasControlChars)
+							wordBuf = ""
+							wordBufLen = 0
+						} else {
+							wordBuf += string(char)
+							wordBufLen++
+						}
+					}
+				} else {
+					wordBuf += string(char)
+					wordBufLen++
+				}
+			}
+		}
+		lastChar = char
+	}
+	if wordBufLen > 0 {
+		lines[curLineNum] += string(wordBuf)
+	}
+	return strings.Join(lines, "\n")
 }
 
 func wrapString(s string, lim uint, splitWords bool) string {
