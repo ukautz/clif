@@ -44,13 +44,13 @@ var users = [][]string{
 		"x",
 	},
 	{
-		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"Super Long Line <info>Super Long<reset> Line Super Long Line Super Long Line Super Long Line ",
 		"x",
 		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
 	},
 	{
 		"x",
-		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
+		"Super <subline>Long Line Super Long Line Super Long Line Super Long Line Super Long<reset> Line ",
 		"Super Long Line Super Long Line Super Long Line Super Long Line Super Long Line ",
 	},
 	{

@@ -112,3 +112,59 @@ func (this CommandsSort) Swap(i, j int) {
 func (this CommandsSort) Less(i, j int) bool {
 	return this[i].Name < this[j].Name
 }
+
+func _stringTableCompare(s1, s2 string) {
+	out := NewTable([]string{"IS", "SHOULD"})
+	l1 := len(s1)
+	l2 := len(s2)
+	max := l1
+	if max < l2 {
+		max = l2
+	}
+	for i := 0; i < max; i++ {
+		row := []string{"", ""}
+		if i < l1 {
+			row[0] = s1[i : i+1]
+		}
+		if i < l2 {
+			row[1] = s2[i : i+1]
+		}
+		for j, c := range row {
+			//fmt.Printf(" .. %d\n", j)
+			if c == "\n" {
+				row[j] = "<BR>"
+			} else if c == "" {
+				row[j] = "-"
+			} else {
+				row[j] = fmt.Sprintf("%d (%c)", c[0], c[0])
+			}
+		}
+		out.AddRow(row)
+		//fmt.Printf("> R %d: %v\n", i, row)
+	}
+
+	style := NewDefaultTableStyle()
+	fmt.Println(style.Render(out, 30))
+}
+
+func _stringRenderDump(s string) string {
+	s = strings.Replace(s, "\n", "\\n", -1)
+	s = strings.Replace(s, "\t", "→", -1)
+	s = strings.Map(func(r rune) rune {
+		if r == ' ' || r == '\t' {
+			return '┈'
+		} else if r >= 32 && r < 127 {
+			return r
+		}
+		return '჻'
+	}, s)
+	return s
+}
+
+func _stringCompareDump(s1, s2 string) {
+	fmt.Printf("\n-------------------------------------\n")
+	fmt.Printf("IS:     \"%s\"\n", _stringRenderDump(s1))
+	fmt.Printf("--------\n")
+	fmt.Printf("SHOULD: \"%s\"\n", _stringRenderDump(s2))
+	fmt.Printf("-------------------------------------\n")
+}

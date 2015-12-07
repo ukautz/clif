@@ -136,37 +136,3 @@ func TestSplitFormattedString(t *testing.T) {
 		}
 	})
 }
-
-func _testDumpStrings(s1, s2 string) {
-	out := NewTable([]string{"IS", "SHOULD"})
-	l1 := len(s1)
-	l2 := len(s2)
-	max := l1
-	if max < l2 {
-		max = l2
-	}
-	for i := 0; i < max; i++ {
-		row := []string{"", ""}
-		if i < l1 {
-			row[0] = s1[i : i+1]
-		}
-		if i < l2 {
-			row[1] = s2[i : i+1]
-		}
-		for j, c := range row {
-			//fmt.Printf(" .. %d\n", j)
-			if c == "\n" {
-				row[j] = "<BR>"
-			} else if c == "" {
-				row[j] = "-"
-			} else {
-				row[j] = fmt.Sprintf("%d (%c)", c[0], c[0])
-			}
-		}
-		out.AddRow(row)
-		//fmt.Printf("> R %d: %v\n", i, row)
-	}
-
-	style := NewDefaultTableStyle()
-	fmt.Println(style.Render(out, 30))
-}

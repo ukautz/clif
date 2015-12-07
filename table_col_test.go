@@ -163,8 +163,8 @@ func TestTableColWithFormatting(t *testing.T) {
 			"Formatted": []string{
 				"foo <info>bar baz foo bar<reset> baz!",
 				strings.Join([]string{
-					"foo \033[34mbar   \033[0m",
-					"\033[34mbaz foo   \033[0m",
+					"foo \033[34mbar\033[0m   ",
+					"\033[34mbaz foo\033[0m   ",
 					"\033[34mbar\033[0m baz!  ",
 				}, "\n"),
 			},
@@ -178,6 +178,7 @@ func TestTableColWithFormatting(t *testing.T) {
 				col.SetRenderer(DefaultOutputTableContentRenderer(out))
 
 				res, _, _ := col.Render(10)
+				_stringCompareDump(res, ref[1])
 				//_testDumpStrings(res, ref[1])
 				//fmt.Printf("\033[0m-- IS:\n%s\n\033[0m-- SHOULD:\n%s\n\033[0m--", res, ref[1])
 				So(res, ShouldEqual, ref[1])

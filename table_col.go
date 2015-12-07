@@ -1,15 +1,24 @@
 package clif
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
-	"fmt"
+	"os"
 )
 
 var (
 	rxWords       = regexp.MustCompile(`\s+`)
 	rxPrefixSplit = regexp.MustCompile(`^(\s+)(.+)$`)
 	rxRightTrim   = regexp.MustCompile(`\s+$`)
+
+	TableColWrapper = func(limit uint) *Wrapper {
+		wrapper := NewWrapper(limit)
+		wrapper.WhitespaceMode = WRAP_WHITESPACE_CONTRACT
+		wrapper.TrimMode = WRAP_TRIM_RIGHT
+		wrapper.BreakWords = true
+		return wrapper
+	}
 )
 
 // NewTableCol creates a new table column object from given content
@@ -31,13 +40,12 @@ func (this *TableCol) Render(maxWidth uint) (content string, width, lineCount ui
 		}
 		if maxWidth > 0 {
 			if diff := int(maxWidth) - lineLen; diff > 0 {
-				//fmt.Printf(">> EXTEND LINE (%d VS %d) BY %d\n", lineLen, maxWidth, diff)
 				line += strings.Repeat(" ", diff)
 			}
 		}
 		lineCount++
 		rendered[idx] = line
-		fmt.Printf("\033[0mLINE %d (len: %d): \"%s\"\n\033[0m", idx, lineLen, line)
+		_dbgTableCol("\033[0mLINE %d (len: %d): \"%s\"\n\033[0m", idx, lineLen, line)
 	}
 	content = strings.Join(rendered, "\n")
 	return
@@ -69,9 +77,9 @@ func (this *TableCol) LineCount(maxWidth ...uint) uint {
 // the maxWidth value.
 func (this *TableCol) Content(maxWidth ...uint) string {
 	rendered := this.renderedContent()
-	fmt.Printf("\033m-- RENDERED:\n%s\n\033[0m--\n", rendered)
+	_dbgTableCol("\033m-- RENDERED:\n%s\n\033[0m--\n", rendered)
 	if len(maxWidth) > 0 && maxWidth[0] > 0 {
-		return WrapStringExtreme(rendered, maxWidth[0])
+		return TableColWrapper(maxWidth[0]).Wrap(rendered)
 	}
 	return rendered
 }
@@ -126,4 +134,10 @@ func (this *TableCol) renderedContent() string {
 func (this *TableCol) SetRow(row *TableRow) *TableCol {
 	this.row = row
 	return this
+}
+
+func _dbgTableCol(str string, args ...interface{}) {
+	if dbg := os.Getenv("DEBUG_TABLE_COL"); dbg == "yes" || dbg == "1" {
+		fmt.Printf(str, args...)
+	}
 }
