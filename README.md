@@ -6,7 +6,7 @@
 Command line interface framework
 ================================
 
-Go framework for rapid command line application development.
+Go framework for rapid command line application development. 
 
 Example
 -------
@@ -16,7 +16,7 @@ Example
 ```go
 package main
 
-import "gopkg.in/ukautz/clif.v0"
+import "gopkg.in/ukautz/clif.v1"
 
 func main() {
 	clif.New("My App", "1.0.0", "An example application").
@@ -66,7 +66,7 @@ Install
 -------
 
 ``` bash
-$ go get gopkg.in/ukautz/clif.v0
+$ go get gopkg.in/ukautz/clif.v1
 ```
 
 Getting started
