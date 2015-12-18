@@ -16,16 +16,16 @@ type (
 		Headers *TableRow
 
 		// colAmount is the amount of cols per row (fixed size)
-		colAmount uint
+		colAmount int
 
 		// rowAmount is the amount of rows
-		rowAmount uint
+		rowAmount int
 
 		// set of row, col, lines
 		Rows []*TableRow
 
 		// Style for rendering table
-		Style *TableStyle
+		style *TableStyle
 	}
 
 	TableStyle struct {
@@ -52,8 +52,8 @@ type (
 
 	TableRow struct {
 		// MaxLineCount is the maximum amount of
-		MaxLineCount uint
-		ColAmount    uint
+		MaxLineCount int
+		ColAmount    int
 		Cols         []*TableCol
 		table        *Table
 	}
@@ -63,7 +63,7 @@ type (
 		content *string
 
 		// LineCount contains the amount of lines in the content
-		lineCount uint
+		lineCount int
 
 		// renderer is the content renderer.. see `TableStyle.(Content|Header)Renderer`
 		renderer func(content string) string
@@ -78,10 +78,13 @@ var (
 )
 
 // NewTable constructs new Table with optional list of headers
-func NewTable(headers []string) *Table {
+func NewTable(headers []string, style ...*TableStyle) *Table {
+	if len(style) == 0 {
+		style = []*TableStyle{NewDefaultTableStyle()}
+	}
 	this := &Table{
 		Rows:  make([]*TableRow, 0),
-		Style: NewDefaultTableStyle(),
+		style: style[0],
 	}
 	if headers != nil {
 		this.SetHeaders(headers)
@@ -90,8 +93,8 @@ func NewTable(headers []string) *Table {
 }
 
 // Render prints the table into a string
-func (this *Table) Render(maxWidth uint) string {
-	return this.Style.Render(this, maxWidth)
+func (this *Table) Render(maxWidth ...int) string {
+	return this.style.Render(this, maxWidth...)
 }
 
 // Reset clears all (row) data of the table
@@ -105,17 +108,36 @@ func (this *Table) SetHeaders(headers []string) error {
 	if this.Headers != nil && this.rowAmount > 0 {
 		return fmt.Errorf("Cannot set headers after data has been added")
 	}
-	this.colAmount = uint(len(headers))
+	this.colAmount = len(headers)
 	this.Headers = NewTableRow(headers)
 	return nil
 }
 
-// AddRow ass another row to the table. Headers must be set beforehand.
+// SetStyle changes the table style
+func (this *Table) SetStyle(style *TableStyle) {
+	this.style = style
+}
+
+// AddRow adds another row to the table. Headers must be set beforehand.
 func (this *Table) AddRow(cols []string) error {
 	if err := this.checkAddCols(cols); err != nil {
 		return err
 	}
 	this.addRow(cols)
+	return nil
+}
+
+// AddRows adds multiple row to the table. Headers must be set beforehand.
+func (this *Table) AddRows(rows [][]string) error {
+	for idx, cols:= range rows {
+		if err := this.checkAddCols(cols); err != nil {
+			return fmt.Errorf("Row %d: %s", idx+1, err)
+		}
+	}
+	for _, cols:= range rows {
+		this.addRow(cols)
+	}
+
 	return nil
 }
 
@@ -125,7 +147,7 @@ func (this *Table) AddRow(cols []string) error {
 // columns will be automatically created, if needed.
 // Otherwise the row index must be within the bounds of existing data or an
 // error is returned.
-func (this *Table) SetRow(idx uint, cols []string) error {
+func (this *Table) SetRow(idx int, cols []string) error {
 	if err := this.checkAddCols(cols); err != nil {
 		return err
 	}
@@ -152,7 +174,7 @@ func (this *Table) SetRow(idx uint, cols []string) error {
 // SetColumn sets the contents of a specific column in a specific row. See `SetRow`
 // for limitations on the row index.
 // The column index must be within the bounds of the column amount.
-func (this *Table) SetColumn(rowIdx, colIdx uint, content string) error {
+func (this *Table) SetColumn(rowIdx, colIdx int, content string) error {
 	if this.Headers == nil {
 		return ErrHeadersNotSetYet
 	} else if colIdx >= this.colAmount {
@@ -178,7 +200,7 @@ func (this *Table) checkAddCols(cols []string) error {
 	if this.Headers == nil {
 		return ErrHeadersNotSetYet
 	}
-	if l := uint(len(cols)); l != this.colAmount {
+	if l := len(cols); l != this.colAmount {
 		return fmt.Errorf("Cannot add %d cols. Expected width is %d", l, this.colAmount)
 	}
 	return nil

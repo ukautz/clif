@@ -9,8 +9,8 @@ import (
 var testsTableRow = []struct{
 	content []string
 	expectCalcContent []string
-	expectLineCount uint
-	expectCalcLineCount uint
+	expectLineCount int
+	expectCalcLineCount int
 }{
 	{
 		content: []string{"foo", "bar", "baz"},

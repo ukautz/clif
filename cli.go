@@ -51,6 +51,27 @@ type Cli struct {
 	interruptChan chan os.Signal
 }
 
+type CallError struct {
+	err error
+}
+
+func NewCallError(err error) *CallError {
+	return &CallError{err}
+}
+
+func IsCallError(err error) bool {
+	if err == nil {
+		return false
+	} else if _, ok := err.(*CallError); ok {
+		return true
+	}
+	return false
+}
+
+func (this *CallError) Error() string {
+	return fmt.Sprintf("Failure in execution: %s", this.err)
+}
+
 // New constructs new cli
 func New(name, version, desc string) *Cli {
 	this := &Cli{
@@ -97,10 +118,28 @@ func (this *Cli) AddDefaultOptions(opts ...*Option) *Cli {
 // Call executes command by building all input parameters based on objects
 // registered in the container and running the callback.
 func (this *Cli) Call(c *Command) ([]reflect.Value, error) {
+	this.Register(c)
+	if c.preCall != nil {
+		if _, err := this.call(*c.preCall, c); err != nil {
+			return nil, err
+		}
+	}
+	res, err := this.call(c.Call, c)
+	if err != nil {
+		return res, err
+	}
+	if c.postCall != nil {
+		if _, err := this.call(*c.postCall, c); err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (this *Cli) call(call reflect.Value, c *Command) ([]reflect.Value, error) {
 
 	// build callback arguments and execute
-	this.Register(c)
-	method := c.Call.Type()
+	method := call.Type()
 	input := make([]reflect.Value, method.NumIn())
 	named := NamedParameters(make(map[string]interface{}))
 	namedType := reflect.TypeOf(named).String()
@@ -129,7 +168,24 @@ func (this *Cli) Call(c *Command) ([]reflect.Value, error) {
 		input[namedIndex] = reflect.ValueOf(NamedParameters(named))
 	}
 
-	return c.Call.Call(input), nil
+	outLen := method.NumOut()
+	res := call.Call(input)
+	if outLen > 0 && method.Out(outLen-1).String() == "error" {
+		vals := make([]reflect.Value, outLen-1)
+		if outLen > 1 {
+			for i := 0; i < outLen-1; i++ {
+				vals[i] = res[i]
+			}
+		}
+		if !res[outLen-1].IsNil() {
+			if err := res[outLen-1].Interface().(error); err != nil {
+				return vals, NewCallError(err)
+			}
+		}
+		return vals, nil
+	}
+
+	return res, nil
 }
 
 // Herald registers command constructors, which will be executed in `Run()`.
@@ -208,12 +264,11 @@ func (this *Cli) RunWith(args []string) {
 		}
 
 		// execute callback & handle result
-		if res, err := this.Call(c); err != nil {
-			Die(err.Error())
-		} else {
-			errType := reflect.TypeOf((*error)(nil)).Elem()
-			if len(res) > 0 && res[0].Type().Implements(errType) && !res[0].IsNil() {
-				Die("Failure in execution: %s", res[0].Interface().(error))
+		if _, err := this.Call(c); err != nil {
+			if IsCallError(err) {
+				Die(err.Error())
+			} else {
+				Die(err.Error())
 			}
 		}
 	} else {
@@ -242,17 +297,22 @@ func (this *Cli) SeparateArgs(args []string) (string, []string) {
 	name := ""
 	largs := len(args)
 	cargs := []string{}
-	if largs < 1 || (this.DefaultCommand == "list" && largs == 1 && (args[0] == "-h" || args[0] == "--help")) {
-		name = this.DefaultCommand
-	} else {
-		found := false
-		for _, arg := range args {
-			if found || strings.Index(arg, "-") == 0 {
-				cargs = append(cargs, arg)
-			} else {
-				name = arg
-				found = true
-			}
+
+	// special case: help command
+	_, hasListCommand := this.Commands["list"]
+	if largs == 0 {
+		return this.DefaultCommand, cargs
+	} else if hasListCommand && (args[0] == "-h" || args[0] == "--help") {
+		return "list", cargs
+	}
+
+	found := false
+	for _, arg := range args {
+		if found || strings.Index(arg, "-") == 0 {
+			cargs = append(cargs, arg)
+		} else {
+			name = arg
+			found = true
 		}
 	}
 

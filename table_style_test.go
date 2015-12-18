@@ -23,28 +23,28 @@ var _testTableRenderHeader = func(str string) string {
 
 var testsTableStyle = []struct {
 	data           [][]string
-	expectedWidths []uint
+	expectedWidths []int
 	renderedTable  string
 }{
 	{
 		data: [][]string{
 			{"foo", "bar", "baz"},
 		},
-		expectedWidths: []uint{17, 17, 19},
+		expectedWidths: []int{17, 17, 19},
 		renderedTable:  `fixtures/table_0`,
 	},
 	{
 		data: [][]string{
 			{"foofoofoofoofoo", "bar", "baz"},
 		},
-		expectedWidths: []uint{26, 12, 15},
+		expectedWidths: []int{26, 12, 15},
 		renderedTable:  `fixtures/table_1`,
 	},
 	{
 		data: [][]string{
 			{"foo\nfoo\nfoo\nfoo\nfoo", "bar", "baz"},
 		},
-		expectedWidths: []uint{17, 17, 19},
+		expectedWidths: []int{17, 17, 19},
 		renderedTable:  `fixtures/table_2`,
 	},
 	{
@@ -52,7 +52,7 @@ var testsTableStyle = []struct {
 			{"foofoofoofoofoo", "bar", "baz"},
 			{"foo", "barbarbarbarbar", "baz"},
 		},
-		expectedWidths: []uint{21, 21, 11},
+		expectedWidths: []int{21, 21, 11},
 		renderedTable:  `fixtures/table_3`,
 	},
 	{
@@ -61,7 +61,7 @@ var testsTableStyle = []struct {
 			{"foo", "barbarbarbarbar", "baz"},
 			{"foo", "bar", "bazbazbazbazbaz"},
 		},
-		expectedWidths: []uint{17, 17, 19},
+		expectedWidths: []int{17, 17, 19},
 		renderedTable:  `fixtures/table_4`,
 	},
 	{
@@ -70,7 +70,7 @@ var testsTableStyle = []struct {
 			{"foo", "barbarbarbarbarbarbarbarbarbarbarbarbarbarbar", "baz"},
 			{"foo", "bar", "bazbazbazbazbazbazbazbazbazbazbazbazbazbazbaz"},
 		},
-		expectedWidths: []uint{17, 17, 19},
+		expectedWidths: []int{17, 17, 19},
 		renderedTable:  `fixtures/table_5`,
 	},
 	{
@@ -81,7 +81,7 @@ var testsTableStyle = []struct {
 				"baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz",
 			},
 		},
-		expectedWidths: []uint{17, 17, 19},
+		expectedWidths: []int{17, 17, 19},
 		renderedTable:  `fixtures/table_6`,
 	},
 }
@@ -93,7 +93,7 @@ func TestTableStyle(t *testing.T) {
 			Convey(fmt.Sprintf("%d)", idx), func() {
 				table := NewTable(headers)
 				style := NewDefaultTableStyle()
-				table.Style = style
+				table.style = style
 				for _, row := range test.data {
 					table.AddRow(row)
 				}
@@ -122,7 +122,7 @@ func TestTableStyle(t *testing.T) {
 
 				if test.renderedTable == "fixtures/table_5" {
 					Convey("Render table with open style", func() {
-						style = copyTableStyle(OpenTableStyle)
+						style = CopyTableStyle(OpenTableStyle)
 						style.HeaderRenderer = _testTableRenderHeader
 						out := style.Render(table, 60)
 

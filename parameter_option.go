@@ -31,6 +31,19 @@ func NewOption(name, alias, usage, _default string, required, multiple bool) *Op
 	}
 }
 
+// NewFlag constructs new flag option
+func NewFlag(name, alias, usage string, multiple bool) *Option {
+	return &Option{
+		parameter: parameter{
+			Name:     name,
+			Usage:    usage,
+			Multiple: multiple,
+		},
+		Alias: alias,
+		Flag:  true,
+	}
+}
+
 // IsFlag marks an option as a flag. A Flag does not have any values. If it
 // exists (eg "--verbose"), then it is automatically initialized with the string
 // "true", which then can be checked with the `Bool()` method for actual `bool`

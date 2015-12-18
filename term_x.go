@@ -3,6 +3,7 @@
 package clif
 
 import (
+	"os"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -10,22 +11,21 @@ import (
 
 func init() {
 	TermWidthCall = func() (int, error) {
-		w := new(TermWindow)
+		w := new(termWindow)
 		tio := syscall.TIOCGWINSZ
 		if runtime.GOOS == "darwin" {
 			tio = TERM_TIOCGWINSZ_OSX
 		}
 		res, _, err := syscall.Syscall(sys_ioctl,
-			tty.Fd(),
+			uintptr(syscall.Stdin),
 			uintptr(tio),
 			uintptr(unsafe.Pointer(w)),
 		)
-		if int(res) == -1 {
-			return 0, err
+		if err != 0 || int(res) == -1 {
+			return TERM_DEFAULT_WIDTH, os.NewSyscallError("GetWinsize", err)
 		}
-		TermWidthCurrent = int(w.Col)
-		return TermWidthCurrent, nil
+		return int(w.Col) - 4, nil
 	}
 
-	TermWidthCall()
+	TermWidthCurrent, _ = TermWidthCall()
 }

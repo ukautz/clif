@@ -2,10 +2,10 @@ package clif
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
-	"os"
 )
 
 var (
@@ -40,6 +40,12 @@ type Command struct {
 
 	// Call holds reflections of the callback.
 	Call reflect.Value
+
+	// PreCall is optional method which will be executed before command Call
+	preCall *reflect.Value
+
+	// PostCall is optional method which will be executed after command Call
+	postCall *reflect.Value
 }
 
 // DefaultHelpOption is the "--help" option, which is (per default) added to any command.
@@ -82,6 +88,26 @@ func (this *Command) SetCli(c *Cli) *Command {
 // SetDescription is builder method setting description
 func (this *Command) SetDescription(desc string) *Command {
 	this.Description = desc
+	return this
+}
+
+func (this *Command) SetPreCall(call CallMethod) *Command {
+	ref := reflect.ValueOf(call)
+	if ref.Kind() != reflect.Func {
+		panic(fmt.Sprintf("PreCall must be method, but is %s", ref.Kind()))
+	}
+	this.preCall = &ref
+
+	return this
+}
+
+func (this *Command) SetPostCall(call CallMethod) *Command {
+	ref := reflect.ValueOf(call)
+	if ref.Kind() != reflect.Func {
+		panic(fmt.Sprintf("PostCall must be method, but is %s", ref.Kind()))
+	}
+	this.postCall = &ref
+
 	return this
 }
 
@@ -220,8 +246,8 @@ func (this *Command) AddArgument(v *Argument) *Command {
 }
 
 // NewFlag adds a new flag option
-func (this *Command) NewFlag(name, alias, usage, _default string, multiple bool) *Command {
-	return this.AddOption(NewOption(name, alias, usage, _default, false, multiple).IsFlag())
+func (this *Command) NewFlag(name, alias, usage string, multiple bool) *Command {
+	return this.AddOption(NewFlag(name, alias, usage, multiple))
 }
 
 // NewOption is builder method to construct and add a new option

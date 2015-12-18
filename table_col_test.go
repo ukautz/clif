@@ -13,10 +13,10 @@ var testsTableCol = []struct {
 	expectContent         string
 	expectCalcContent     string
 	expectRenderedContent string
-	expectWidth           uint
-	expectCalcWidth       uint
-	expectLineCount       uint
-	expectCalcLineCount   uint
+	expectWidth           int
+	expectCalcWidth       int
+	expectLineCount       int
+	expectCalcLineCount   int
 }{
 	{
 		content:               "",
@@ -178,7 +178,7 @@ func TestTableColWithFormatting(t *testing.T) {
 				col.SetRenderer(DefaultOutputTableContentRenderer(out))
 
 				res, _, _ := col.Render(10)
-				_stringCompareDump(res, ref[1])
+				//_stringCompareDump(res, ref[1])
 				//_testDumpStrings(res, ref[1])
 				//fmt.Printf("\033[0m-- IS:\n%s\n\033[0m-- SHOULD:\n%s\n\033[0m--", res, ref[1])
 				So(res, ShouldEqual, ref[1])

@@ -16,8 +16,8 @@ type Output interface {
 	// Printf applies format (renders styles) and writes to output
 	Printf(msg string, args ...interface{})
 
-	// Progress creates new progress bar output
-	Progress(size int) *ProgressBar
+	// ProgressBars returns the pool of progress bars
+	ProgressBars() ProgressBarPool
 
 	// Sprintf applies format (renders styles) and returns as string
 	Sprintf(msg string, args ...interface{}) string
@@ -26,7 +26,7 @@ type Output interface {
 	SetFormatter(f Formatter) Output
 
 	// Table creates a table object
-	Table(header []string) *Table
+	Table(header []string, style ...*TableStyle) *Table
 
 	// Writer returns the `io.Writer` used by this output
 	Writer() io.Writer
@@ -34,8 +34,9 @@ type Output interface {
 
 // DefaultOutput is the default used output type
 type DefaultOutput struct {
-	fmt Formatter
-	io  io.Writer
+	fmt    Formatter
+	io     io.Writer
+	pbPool ProgressBarPool
 }
 
 var (
@@ -61,8 +62,9 @@ func NewOutput(io io.Writer, f Formatter) *DefaultOutput {
 		io = os.Stdout
 	}
 	return &DefaultOutput{
-		fmt: f,
-		io:  io,
+		fmt:    f,
+		io:     io,
+		pbPool: NewProgressBarPool(),
 	}
 }
 
@@ -97,20 +99,21 @@ func (this *DefaultOutput) Printf(msg string, args ...interface{}) {
 	this.io.Write([]byte(this.Sprintf(msg, args...)))
 }
 
-func (this *DefaultOutput) Progress(size int) *ProgressBar {
-	pb := NewProgressBar(size)
-	return pb
+func (this *DefaultOutput) ProgressBars() ProgressBarPool {
+	return this.pbPool
 }
 
 func (this *DefaultOutput) Sprintf(msg string, args ...interface{}) string {
 	return this.fmt.Format(fmt.Sprintf(msg, args...))
 }
 
-func (this *DefaultOutput) Table(headers []string) *Table {
-	table := NewTable(headers)
-	table.Style = copyTableStyle(DefaultTableStyle)
-	table.Style.HeaderRenderer = DefaultOutputTableHeaderRenderer(this)
-	table.Style.ContentRenderer = DefaultOutputTableContentRenderer(this)
+func (this *DefaultOutput) Table(headers []string, style ...*TableStyle) *Table {
+	if len(style) == 0 {
+		style = []*TableStyle{NewDefaultTableStyle()}
+	}
+	style[0].HeaderRenderer = DefaultOutputTableHeaderRenderer(this)
+	style[0].ContentRenderer = DefaultOutputTableContentRenderer(this)
+	table := NewTable(headers, style...)
 	return table
 }
 

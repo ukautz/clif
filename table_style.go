@@ -5,10 +5,6 @@ import (
 	"strings"
 )
 
-const (
-	DEFAULT_RENDER_WIDTH = uint(80)
-)
-
 var (
 	ClosedTableStyle = &TableStyle{
 		Bottom:          "─",
@@ -56,10 +52,10 @@ var (
 )
 
 func NewDefaultTableStyle() *TableStyle {
-	return copyTableStyle(DefaultTableStyle)
+	return CopyTableStyle(DefaultTableStyle)
 }
 
-func copyTableStyle(from *TableStyle) *TableStyle {
+func CopyTableStyle(from *TableStyle) *TableStyle {
 	to := new(TableStyle)
 	to.Bottom = from.Bottom
 	to.ContentRenderer = from.ContentRenderer
@@ -83,21 +79,29 @@ func copyTableStyle(from *TableStyle) *TableStyle {
 	return to
 }
 
-func (this *TableStyle) Waste(colCount uint) uint {
+// Waste returns the amount of "wasted" characters (table render characters
+// + prefix and suffix whitespaces) for given amount of columns
+func (this *TableStyle) Waste(colCount int) int {
 	if colCount <= 1 {
 		colCount = 0
 	} else {
 		colCount--
 	}
-	perCol := uint(StringLength(this.Prefix) + StringLength(this.Suffix))
-	return uint(StringLength(this.Left)) +
-		uint(StringLength(this.Right)) +
+	perCol := StringLength(this.Prefix) + StringLength(this.Suffix)
+	return StringLength(this.Left) +
+		StringLength(this.Right) +
 		perCol*colCount +
-		(colCount-1)*uint(StringLength(this.InnerVertical))
+		(colCount-1)*StringLength(this.InnerVertical)
 }
 
-func (this *TableStyle) Render(table *Table, maxWidth uint) string {
+// Render renders given table with a given max width. Max width can not be lower
+// than waste per row (see `Waste()`) and at least one character per column.
+func (this *TableStyle) Render(table *Table, mw ...int) string {
 	//fmt.Printf("\n-----------------------\n\n+ RENDER START\n")
+	maxWidth := 0
+	if len(mw) > 0 {
+		maxWidth = mw[0]
+	}
 	colWidths := this.CalculateColWidths(table, maxWidth)
 	out := this.renderTopRow(colWidths)
 	out += this.renderHeaderRow(table.Headers, colWidths)
@@ -110,9 +114,10 @@ func (this *TableStyle) Render(table *Table, maxWidth uint) string {
 	return strings.TrimRight(out, "\n") + "\n"
 }
 
-func (this *TableStyle) CalculateColWidths(table *Table, totalTableWidth uint) []uint {
+// CalculateColWidths returns the widths of the cols of the table, for given max width
+func (this *TableStyle) CalculateColWidths(table *Table, totalTableWidth int) []int {
 	if totalTableWidth == 0 {
-		totalTableWidth = DEFAULT_RENDER_WIDTH
+		totalTableWidth = TermWidthCurrent
 	}
 	waste := this.Waste(table.colAmount)
 	//fmt.Printf("\n+ CALC COL WIDTHS (MAX = %d, WASTE = %d)\n", totalTableWidth, waste)
@@ -121,10 +126,10 @@ func (this *TableStyle) CalculateColWidths(table *Table, totalTableWidth uint) [
 	} else {
 		totalTableWidth -= waste
 	}
-	colWidths := make([]uint, table.colAmount)
-	sumColWidth := uint(0)
+	colWidths := make([]int, table.colAmount)
+	sumColWidth := 0
 	table.Headers.SetRenderer(this.HeaderRenderer)
-	rows := make([]*TableRow, table.rowAmount + 1)
+	rows := make([]*TableRow, table.rowAmount+1)
 	rows[0] = table.Headers
 	for idx, row := range table.Rows {
 		row.SetRenderer(this.ContentRenderer)
@@ -146,10 +151,10 @@ func (this *TableStyle) CalculateColWidths(table *Table, totalTableWidth uint) [
 	}
 	if totalTableWidth > 0 {
 		factor := float64(totalTableWidth) / float64(sumColWidth)
-		usedWidth := uint(0)
+		usedWidth := 0
 		lastWidthIdx := len(colWidths) - 1
 		for idx, width := range colWidths {
-			colWidths[idx] = uint(float64(width) * factor)
+			colWidths[idx] = int(float64(width) * factor)
 			usedWidth += colWidths[idx]
 			if idx == lastWidthIdx {
 				colWidths[idx] += totalTableWidth - usedWidth
@@ -160,12 +165,12 @@ func (this *TableStyle) CalculateColWidths(table *Table, totalTableWidth uint) [
 	return colWidths
 }
 
-func (this *TableStyle) renderBorderRow(first, prefix, content, suffix, cross, last string, colWidths []uint) string {
+func (this *TableStyle) renderBorderRow(first, prefix, content, suffix, cross, last string, colWidths []int) string {
 	row := first
 	lastColIdx := len(colWidths) - 1
 	for idx, colWidth := range colWidths {
 		row += strings.Repeat(prefix, StringLength(this.Prefix))
-		if cw := int(colWidth); cw > 0 {
+		if cw := colWidth; cw > 0 {
 			row += strings.Repeat(content, cw)
 		}
 		row += strings.Repeat(suffix, StringLength(this.Suffix))
@@ -177,7 +182,7 @@ func (this *TableStyle) renderBorderRow(first, prefix, content, suffix, cross, l
 	return row
 }
 
-func (this *TableStyle) renderContentRow(first, cross, last string, colContents []string, colWidths []uint) string {
+func (this *TableStyle) renderContentRow(first, cross, last string, colContents []string, colWidths []int) string {
 
 	// transform (i in slice[string] to (i, j in slice[string][string]) in which each row i has the
 	// same amount of elements j (hence normalized)
@@ -225,14 +230,14 @@ func (this *TableStyle) renderContentRow(first, cross, last string, colContents 
 	return out
 }
 
-func (this *TableStyle) renderTopRow(colWidths []uint) string {
+func (this *TableStyle) renderTopRow(colWidths []int) string {
 	if this.Top != "" {
 		return this.renderBorderRow(this.LeftTop, this.Top, this.Top, this.Top, this.CrossTop, this.RightTop, colWidths) + "\n"
 	}
 	return ""
 }
 
-func (this *TableStyle) renderHeaderRow(row *TableRow, colWidths []uint) string {
+func (this *TableStyle) renderHeaderRow(row *TableRow, colWidths []int) string {
 	row.SetRenderer(this.HeaderRenderer)
 	rendered, _ := row.RenderWithWidths(colWidths)
 	/*for idx, text := range rendered {
@@ -241,7 +246,7 @@ func (this *TableStyle) renderHeaderRow(row *TableRow, colWidths []uint) string 
 	return this.renderContentRow(this.Left, this.InnerVertical, this.Right, rendered, colWidths)
 }
 
-func (this *TableStyle) renderDataRow(row *TableRow, colWidths []uint) string {
+func (this *TableStyle) renderDataRow(row *TableRow, colWidths []int) string {
 	row.SetRenderer(this.ContentRenderer)
 	rendered, _ := row.RenderWithWidths(colWidths)
 	out := ""
@@ -254,7 +259,7 @@ func (this *TableStyle) renderDataRow(row *TableRow, colWidths []uint) string {
 	return out
 }
 
-func (this *TableStyle) renderBottomRow(colWidths []uint) string {
+func (this *TableStyle) renderBottomRow(colWidths []int) string {
 	if this.Bottom != "" {
 		return this.renderBorderRow(this.LeftBottom, this.Bottom, this.Bottom, this.Bottom, this.CrossBottom, this.RightBottom, colWidths)
 	}
@@ -262,5 +267,5 @@ func (this *TableStyle) renderBottomRow(colWidths []uint) string {
 }
 
 func init() {
-	DefaultTableStyle = copyTableStyle(ClosedTableStyle)
+	DefaultTableStyle = CopyTableStyle(ClosedTableStyle)
 }

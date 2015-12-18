@@ -3,26 +3,28 @@ package clif
 import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+	//"time"
 	"time"
 )
 
-func _testRenderProgressBar(pb *ProgressBar, pos int) string {
+func _testRenderProgressBar(pb ProgressBar, pos int) string {
 	pb.Set(pos)
 	rendered := pb.Render()
 	//fmt.Printf("OUT (%d):\n---\n%s\n---\n\n", pos, rendered)
-	So(StringLength(rendered), ShouldEqual, pb.renderWidth)
+	So(StringLength(rendered), ShouldEqual, pb.RenderWidth())
 	return rendered
 }
 
 func TestProgressBarRender(t *testing.T) {
 	Convey("Rendering progress", t, func() {
-		pb := NewProgressBar(200).SetStyle(PbStyleAscii)
+		pb := NewProgressBar(200).SetStyle(ProgressBarStyleAscii).(*ProgressBarSimple)
+		pb.SetRenderWidth(80)
 
 		Convey("Render without info", func() {
-			pb.RenderProgressCount = false
-			pb.RenderProgressPercentage = false
-			pb.RenderTimeEstimate = false
-			pb.started = time.Now().Add(time.Minute * -2)
+			pb.Style().Percentage = PROGRESS_BAR_ADDON_OFF
+			pb.Style().Estimate = PROGRESS_BAR_ADDON_OFF
+			pb.Style().Elapsed = PROGRESS_BAR_ADDON_OFF
+			pb.Style().Count = PROGRESS_BAR_ADDON_OFF
 
 			rendered := _testRenderProgressBar(pb, 0)
 			So(rendered, ShouldEqual, "[------------------------------------------------------------------------------]")
@@ -50,22 +52,23 @@ func TestProgressBarRender(t *testing.T) {
 		})
 
 		Convey("Render with info", func() {
-			pb.RenderProgressCount = true
-			pb.RenderProgressPercentage = true
-			pb.RenderTimeEstimate = true
+			pb.Style().Percentage = PROGRESS_BAR_ADDON_APPEND
+			pb.Style().Estimate = PROGRESS_BAR_ADDON_APPEND
+			pb.Style().Elapsed = PROGRESS_BAR_ADDON_APPEND
+			pb.Style().Count = PROGRESS_BAR_ADDON_PREPEND
 			pb.started = time.Now().Add(time.Minute * -2)
 
 			rendered := _testRenderProgressBar(pb, 0)
-			So(rendered, ShouldEqual, "[  0/200] [---------------------------------------------------] [ 0.0% - 00m00s]")
+			So(rendered, ShouldEqual, "  0/200 [--------------------------------------------] @02m00s / ~00m00s /  0.0%")
 
 			rendered = _testRenderProgressBar(pb, 50)
-			So(rendered, ShouldEqual, "[ 50/200] [===========>---------------------------------------] [25.0% - 06m00s]")
+			So(rendered, ShouldEqual, " 50/200 [==========>---------------------------------] @02m00s / ~06m00s / 25.0%")
 
 			rendered = _testRenderProgressBar(pb, 100)
-			So(rendered, ShouldEqual, "[100/200] [========================>--------------------------] [50.0% - 02m00s]")
+			So(rendered, ShouldEqual, "100/200 [=====================>----------------------] @02m00s / ~02m00s / 50.0%")
 
 			rendered = _testRenderProgressBar(pb, 200)
-			So(rendered, ShouldEqual, "[200/200] [===================================================] [100.% - 00m00s]")
+			So(rendered, ShouldEqual, "200/200 [============================================] @02m00s / ~00m00s /  100%")
 
 			Convey("Render length", func() {
 				//for _, pos := range []int{0, 40, 80, 120, 160, 200} {
@@ -77,11 +80,12 @@ func TestProgressBarRender(t *testing.T) {
 		})
 
 		Convey("Render unicode style", func() {
-			pb.RenderProgressCount = false
-			pb.RenderProgressPercentage = false
-			pb.RenderTimeEstimate = false
-			pb.SetStyle(PbStyleUtf8)
-			pb.started = time.Now().Add(time.Minute * -2)
+			pb.SetStyle(ProgressBarStyleUtf8)
+			pb.Style().Percentage = PROGRESS_BAR_ADDON_OFF
+			pb.Style().Estimate = PROGRESS_BAR_ADDON_OFF
+			pb.Style().Elapsed = PROGRESS_BAR_ADDON_OFF
+			pb.Style().Count = PROGRESS_BAR_ADDON_OFF
+			//pb.started = time.Now().Add(time.Minute * -2)
 
 			rendered := _testRenderProgressBar(pb, 0)
 			So(rendered, ShouldEqual, "▕░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▏")
@@ -96,13 +100,14 @@ func TestProgressBarRender(t *testing.T) {
 			So(rendered, ShouldEqual, "▕██████████████████████████████████████████████████████████████████████████████▏")
 
 			Convey("Render unicode style with info", func() {
-				pb.RenderProgressCount = true
-				pb.RenderProgressPercentage = true
-				pb.RenderTimeEstimate = true
-				pb.started = time.Now().Add(time.Minute * -2)
+				pb.Style().Percentage = PROGRESS_BAR_ADDON_APPEND
+				pb.Style().Estimate = PROGRESS_BAR_ADDON_APPEND
+				pb.Style().Elapsed = PROGRESS_BAR_ADDON_PREPEND
+				pb.Style().Count = PROGRESS_BAR_ADDON_PREPEND
+				//pb.started = time.Now().Add(time.Minute * -2)
 
 				rendered = _testRenderProgressBar(pb, 50)
-				So(rendered, ShouldEqual, "[ 50/200] ▕███████████▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▏ [25.0% - 06m00s]")
+				So(rendered, ShouldEqual, " 50/200 / @00m00s ▕██████████▓░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▏ ~00m00s / 25.0%")
 			})
 		})
 	})

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -18,6 +20,148 @@ type testCliInject struct {
 
 func (this *testCliInject) Hello() int {
 	return this.Foo
+}
+
+func TestCliCall(t *testing.T) {
+	Convey("Call cli command", t, func() {
+		val := []string{}
+		cmd := NewCommand("foo", "Do foo", func() {
+			val = append(val, "called")
+		})
+		cli := New("cli", "0.1.0", "The cli")
+		vals, err := cli.Call(cmd)
+		So(err, ShouldBeNil)
+		So(len(vals), ShouldEqual, 0)
+		So(strings.Join(val, " ** "), ShouldEqual, "called")
+
+		Convey("With return values", func() {
+			val = []string{}
+			cmd.Call = reflect.ValueOf(func() (int, string, error) {
+				val = append(val, "called")
+				return 10, "foo", nil
+			})
+			vals, err = cli.Call(cmd)
+			So(len(vals), ShouldEqual, 2)
+			So(err, ShouldBeNil)
+			So(strings.Join(val, " ** "), ShouldEqual, "called")
+			So(vals[0].Interface(), ShouldResemble, 10)
+			So(vals[1].Interface(), ShouldResemble, "foo")
+
+			Convey("With error and values", func() {
+				val = []string{}
+				cmd.Call = reflect.ValueOf(func() (int, string, error) {
+					val = append(val, "called")
+					return 10, "foo", fmt.Errorf("The error")
+				})
+				vals, err = cli.Call(cmd)
+				So(len(vals), ShouldEqual, 2)
+				So(err, ShouldResemble, NewCallError(fmt.Errorf("The error")))
+				So(strings.Join(val, " ** "), ShouldEqual, "called")
+				So(vals[0].Interface(), ShouldResemble, 10)
+				So(vals[1].Interface(), ShouldResemble, "foo")
+			})
+		})
+
+		Convey("With pre call", func() {
+			val = []string{}
+			cmd.SetPreCall(func(c *Command) {
+				val = append(val, fmt.Sprintf("pre (%s)", c.Name))
+			})
+			_, err = cli.Call(cmd)
+			So(err, ShouldBeNil)
+			So(strings.Join(val, " ** "), ShouldEqual, "pre (foo) ** called")
+
+			Convey("With values, which are not delegated", func() {
+				val = []string{}
+				cmd.SetPreCall(func(c *Command) (int, string) {
+					val = append(val, fmt.Sprintf("pre (%s)", c.Name))
+					return 10, "foo"
+				})
+				vals, err := cli.Call(cmd)
+				So(err, ShouldBeNil)
+				So(len(vals), ShouldEqual, 0)
+				So(strings.Join(val, " ** "), ShouldEqual, "pre (foo) ** called")
+			})
+
+			Convey("With error, which is delegated", func() {
+				val = []string{}
+				cmd.SetPreCall(func(c *Command) error {
+					val = append(val, fmt.Sprintf("pre (%s)", c.Name))
+					return fmt.Errorf("Pre Error")
+				})
+				_, err = cli.Call(cmd)
+				So(err, ShouldResemble, NewCallError(fmt.Errorf("Pre Error")))
+				So(strings.Join(val, " ** "), ShouldEqual, "pre (foo)")
+
+				Convey("With error and values, which are not delegated", func() {
+					val = []string{}
+					cmd.SetPreCall(func(c *Command) (int, string, error) {
+						val = append(val, fmt.Sprintf("pre (%s)", c.Name))
+						return 10, "foo", fmt.Errorf("Pre Error")
+					})
+					vals, err := cli.Call(cmd)
+					So(err, ShouldResemble, NewCallError(fmt.Errorf("Pre Error")))
+					So(len(vals), ShouldEqual, 0)
+					So(strings.Join(val, " ** "), ShouldEqual, "pre (foo)")
+				})
+			})
+
+			Convey("With post call", func() {
+				val = []string{}
+				cmd.SetPostCall(func(c *Command) {
+					val = append(val, fmt.Sprintf("post (%s)", c.Name))
+				})
+				_, err = cli.Call(cmd)
+				So(err, ShouldBeNil)
+				So(strings.Join(val, " ** "), ShouldEqual, "pre (foo) ** called ** post (foo)")
+			})
+		})
+
+		Convey("With post call", func() {
+			val = []string{}
+			cmd.SetPostCall(func(c *Command) {
+				val = append(val, fmt.Sprintf("post (%s)", c.Name))
+			})
+			_, err = cli.Call(cmd)
+			So(err, ShouldBeNil)
+			So(strings.Join(val, " ** "), ShouldEqual, "called ** post (foo)")
+
+			Convey("With values, which are not delegated", func() {
+				val = []string{}
+				cmd.SetPostCall(func(c *Command) (int, string) {
+					val = append(val, fmt.Sprintf("post (%s)", c.Name))
+					return 10, "foo"
+				})
+				vals, err := cli.Call(cmd)
+				So(err, ShouldBeNil)
+				So(len(vals), ShouldEqual, 0)
+				So(strings.Join(val, " ** "), ShouldEqual, "called ** post (foo)")
+			})
+
+			Convey("With error, which is delegated", func() {
+				val = []string{}
+				cmd.SetPostCall(func(c *Command) error {
+					val = append(val, fmt.Sprintf("post (%s)", c.Name))
+					return fmt.Errorf("Post Error")
+				})
+				_, err = cli.Call(cmd)
+				So(err, ShouldResemble, NewCallError(fmt.Errorf("Post Error")))
+				So(strings.Join(val, " ** "), ShouldEqual, "called ** post (foo)")
+
+				Convey("With error and values, which are not delegated", func() {
+					val = []string{}
+					cmd.SetPostCall(func(c *Command) (int, string, error) {
+						val = append(val, fmt.Sprintf("post (%s)", c.Name))
+						return 10, "foo", fmt.Errorf("Post Error")
+					})
+					vals, err := cli.Call(cmd)
+					So(err, ShouldResemble, NewCallError(fmt.Errorf("Post Error")))
+					So(strings.Join(val, " ** "), ShouldEqual, "called ** post (foo)")
+					So(len(vals), ShouldEqual, 0)
+				})
+			})
+		})
+	})
 }
 
 func TestCliRun(t *testing.T) {
@@ -119,6 +263,9 @@ func TestCliRun(t *testing.T) {
 		})
 		Convey("Run method with invalid arg fails", func() {
 			So(func() {
+				buf := bytes.NewBuffer(nil)
+				out := NewOutput(buf, NewDefaultFormatter(map[string]string{}))
+				c.SetOutput(out)
 				c.RunWith([]string{"bla", "bla"})
 			}, ShouldPanicWith, "Parse error: Parameter \"something\" invalid: Never works!")
 		})
@@ -238,44 +385,43 @@ func TestCliHeralds(t *testing.T) {
 	})
 }
 
-
-var testCliSeparateArgs = []struct{
-	args []string
+var testCliSeparateArgs = []struct {
+	args       []string
 	expectName string
 	expectArgs []string
 }{
 	{
-		args: []string{"foo", "--bar", "baz"},
+		args:       []string{"foo", "--bar", "baz"},
 		expectName: "foo",
 		expectArgs: []string{"--bar", "baz"},
 	},
 	{
-		args: []string{"foo", "-bar", "baz"},
+		args:       []string{"foo", "-bar", "baz"},
 		expectName: "foo",
 		expectArgs: []string{"-bar", "baz"},
 	},
 	{
-		args: []string{"foo", "baz", "--bar"},
+		args:       []string{"foo", "baz", "--bar"},
 		expectName: "foo",
 		expectArgs: []string{"baz", "--bar"},
 	},
 	{
-		args: []string{"--bar", "foo", "baz"},
+		args:       []string{"--bar", "foo", "baz"},
 		expectName: "foo",
 		expectArgs: []string{"--bar", "baz"},
 	},
 	{
-		args: []string{"--bar=boing", "foo", "baz"},
+		args:       []string{"--bar=boing", "foo", "baz"},
 		expectName: "foo",
 		expectArgs: []string{"--bar=boing", "baz"},
 	},
 	{
-		args: []string{"-bar=boing", "foo", "baz"},
+		args:       []string{"-bar=boing", "foo", "baz"},
 		expectName: "foo",
 		expectArgs: []string{"-bar=boing", "baz"},
 	},
 	{
-		args: []string{"--bar", "boing", "foo", "baz"},
+		args:       []string{"--bar", "boing", "foo", "baz"},
 		expectName: "boing",
 		expectArgs: []string{"--bar", "foo", "baz"},
 	},

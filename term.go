@@ -11,6 +11,12 @@ import (
 	"os"
 )
 
+const (
+	TERM_TIOCGWINSZ     = 0x5413
+	TERM_TIOCGWINSZ_OSX = 1074295912
+	TERM_DEFAULT_WIDTH  = 78
+)
+
 var (
 	tty *os.File
 
@@ -19,17 +25,11 @@ var (
 
 	// TermWidthCurrent contains the current terminal width from the last
 	// call of `TerminalWidth()` (which is called in `init()`)
-	TermWidthCurrent int
-)
-
-const (
-	TERM_TIOCGWINSZ     = 0x5413
-	TERM_TIOCGWINSZ_OSX = 1074295912
-	TERM_DEFAULT_WIDTH  = 78
+	TermWidthCurrent = TERM_DEFAULT_WIDTH
 )
 
 type (
-	TermWindow struct {
+	termWindow struct {
 		Row    uint16
 		Col    uint16
 		Xpixel uint16

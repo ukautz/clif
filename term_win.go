@@ -9,9 +9,11 @@ import (
 func init() {
 	TermWidthCall = func() (int, error) {
 		size, err := ts.GetSize()
-		TermWidthCurrent = size.Col()
-		return TermWidthCurrent, err
+		if err != nil {
+			return TERM_DEFAULT_WIDTH, err
+		}
+		return size.Col(), nil
 	}
 
-	TermWidthCall()
+	TermWidthCurrent, _ = TermWidthCall()
 }

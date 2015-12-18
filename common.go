@@ -6,6 +6,9 @@ import (
 	"regexp"
 	"strings"
 	"unicode/utf8"
+	"io"
+	"path/filepath"
+	"time"
 )
 
 const (
@@ -95,6 +98,17 @@ var Die = func(msg string, args ...interface{}) {
 // Exit is wrapper for os.Exit, so it can be overwritten for tests or edge use cases
 var Exit = func(s int) {
 	os.Exit(s)
+}
+
+var dbgFh io.Writer
+var Dbg = func(msg string, args ...interface{}) {
+	if v := os.Getenv("DEBUG_CLIF"); v != "1" {
+		return
+	}
+	if dbgFh == nil {
+		dbgFh, _ = os.OpenFile(filepath.Join(os.TempDir(), "debug.clif"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	}
+	dbgFh.Write([]byte(fmt.Sprintf("[%s] %s\n", time.Now(), fmt.Sprintf(msg, args...))))
 }
 
 // CommandSort implements the `sort.Sortable` interface for commands, based on

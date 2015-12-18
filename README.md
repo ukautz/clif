@@ -28,6 +28,9 @@ func main() {
 
 - - -
 
+<!-- TOC START -->
+
+* [Example](#example)
 * [Install](#install)
 * [Getting started](#getting-started)
 * [Commands](#commands)
@@ -47,10 +50,14 @@ func main() {
     * [Confirm](#confirm)
     * [Choose](#choose)
   * [Output &amp; formatting](#output--formatting)
-    * [Outputs](#outputs)
+    * [Output themes](#output-themes)
     * [Styles](#styles)
+    * [Table](#table)
+    * [Progress bar](#progress-bar)
 * [Real-life example](#real-life-example)
 * [See also](#see-also)
+
+<!-- TOC END -->
 
 - - -
 
@@ -268,7 +275,10 @@ func callbackFunctionI(c *clif.Command) {
 There is a special kind of option, which does not expect a parameter: the flag. As options, their position is arbitrary.
 
 ``` go
-flag := clif.NewOption("my-flag", "f", "Something ..", "", false, false).IsFlag()
+// shorthand
+flag := clif.NewFlag("my-flag", "f", "Something ..", false)
+// which would just do:
+flag = clif.NewOption("my-flag", "f", "Something ..", "", false, false).IsFlag()
 cmd := clif.NewCommand("hello", "A description", callBackFunction).AddOption(flag)
 ```
 
@@ -467,7 +477,7 @@ func callbackFunctionI(in clif.Input) {
 
 The `clif.Output` interface can be injected into any callback. It relies on a `clif.Formatter`, which does the actual formatting (eg colorizing) of the text.
 
-#### Outputs
+#### Output themes
 
 Per default, the `clif.DefaultInput` via `clif.NewColorOutput()` is used. It uses `clif.DefaultStyles`, which look like the screenshots you are seeing in this readme.
 
@@ -490,21 +500,124 @@ There three built-in color styles (of course, you can extend them or add your ow
 1. `WinterStyles` - more blue'ish
 
 
-#### Helpers
+#### Table
 
-Currently there are two output helpers available:
+Table rendering is a neat tool for CLIs. CLIF supports tables out of the box using the `Output` interface. 
 
-1. **Table renderer**: Render datasets in tables
-2. **Progress bar**: Visualize arbitrary progress
+**Features:**
 
-##### Table
+* Multi-line columns
+* Column auto fit
+* Formatting (color) within columns
+* Automatic stretch to max size (unless specifcied otherwise)
 
+**Example:**
 
-##### Progress bar
+``` go
+var (
+    headers := []string{"Name", "Age", "Force"}
+    rows = [][]string{
+        {
+            "<important>Yoda<reset>",
+            "Very, very old",
+            "Like the uber guy",
+        },
+        {
+            "<important>Luke Skywalker<reset>",
+            "Not that old",
+            "A bit, but not that much",
+        },
+        {
+            "<important>Anakin Skywalker<reset>",
+            "Old dude",
+            "He is Lukes father! Was kind of stronger in 1-3, but still failed to" + 
+                " kill Jar Jar Binks. Not even tried, though. What's with that?",
+        },
+	}
+)
+
+func callbackFunction(out clif.Output) {
+	table := out.Table(headers)
+	table.AddRows(rows)
+	fmt.Println(table.Render())
+}
+```
+
+Would print the following:
+
+![table-1](https://cloud.githubusercontent.com/assets/600604/11908046/37aa3578-a5d9-11e5-99a3-cc66937b965c.gif)
+
+There are currently to styles available: `ClosedTableStyle` (above) and `OpenTableStyle` (below):
+
+``` go
+func callbackFunction(out clif.Output) {
+	table := out.Table(headers, clif.OpenTableStyle)
+	table.AddRows(rows)
+	fmt.Println(table.Render())
+}
+```
+
+Would print the following:
+
+![table-2](https://cloud.githubusercontent.com/assets/600604/11908047/37ac10f0-a5d9-11e5-9f95-b7ae59d26ac9.gif)
+
+#### Progress bar
+
+Another often required tool is the progress bar. Hence CLIF provides one out of the box:
 
 ```go
-func
-pb := out.
+func cmdProgress(out clif.Output) error {
+	pbs := out.ProgressBars()
+	pb, _ := pbs.Init("default", 200)
+	pbs.Start()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func(b clif.ProgressBar) {
+		defer wg.Done()
+		for i := 0; i < 200; i++ {
+			b.Increment()
+			<-time.After(time.Millisecond * 100)
+		}
+	}(pb)
+	wg.Wait()
+	<-pbs.Finish()
+}
+```
+
+Would output this:
+
+![progress-1](https://cloud.githubusercontent.com/assets/600604/11908868/796206c4-a5e0-11e5-9b5b-ffae60f19b99.gif)
+
+Multiple bars are also possible, thanks to [Greg Osuri's library](github.com/gosuri/uilive):
+
+```go
+func cmdProgress(out clif.Output) error {
+	pbs := out.ProgressBars()
+	pbs.Start()
+	var wg sync.WaitGroup
+	for i := 0; i < 3; i++ {
+		wg.Add(1)
+		pb, _ := pbs.Init(fmt.Sprintf("bar-%d", i+1), 200)
+		go func(b clif.ProgressBar, ii int) {
+			defer wg.Done()
+			for i := 0; i < 200; i++ {
+				b.Increment()
+				<-time.After(time.Millisecond * time.Duration(100 * ii))
+			}
+		}(pb, i)
+	}
+	wg.Wait()
+	<-pbs.Finish()
+}
+```
+
+Would output this:
+
+![progress-2](https://cloud.githubusercontent.com/assets/600604/11908867/795f1338-a5e0-11e5-8d2c-aa2d8f2802e5.gif)
+
+You prefer those ASCII arrows? Just set `pbs.SetStyle(clif.ProgressBarStyleAscii)` and:
+
+![progress-3](https://cloud.githubusercontent.com/assets/600604/11908964/ac90e83e-a5e1-11e5-8f8a-d3ebaa8c5903.gif)
 
 
 Real-life example
