@@ -1,9 +1,10 @@
 ![status](https://api.travis-ci.org/ukautz/clif.svg?branch=v0)
 [![GoDoc](https://godoc.org/gopkg.in/ukautz/clif.v0?status.svg)](http://godoc.org/gopkg.in/ukautz/clif.v0)
 
+![logo-large](https://cloud.githubusercontent.com/assets/600604/11909504/c6e25a6e-a5e7-11e5-8eaf-f69fa577b744.png)
 
-CLIF - Command line interface framework
-=======================================
+Command line interface framework
+================================
 
 Go framework for rapid command line application development.
 
