@@ -548,7 +548,7 @@ Would print the following:
 
 ![table-1](https://cloud.githubusercontent.com/assets/600604/11908046/37aa3578-a5d9-11e5-99a3-cc66937b965c.gif)
 
-There are currently to styles available: `ClosedTableStyle` (above) and `OpenTableStyle` (below):
+There are currently to styles available: `ClosedTableStyle` (above), `ClosedTableStyleLight`, `OpenTableStyle` (below) and `OpenTableStyleLight`:
 
 ``` go
 func callbackFunction(out clif.Output) {

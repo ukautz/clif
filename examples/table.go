@@ -33,7 +33,7 @@ func printTable2(c *clif.Command, out clif.Output) {
 	headers := []string{"Name", "Age", "Force"}
 	var table *clif.Table
 	if c.Option("open").Bool() {
-		table = out.Table(headers, clif.OpenTableStyle)
+		table = out.Table(headers, clif.OpenTableStyleLight)
 	} else {
 		table = out.Table(headers)
 	}
