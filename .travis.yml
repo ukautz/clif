@@ -5,6 +5,7 @@ go:
     - 1.5
 
 install:
+    - go get github.com/smartystreets/goconvey/convey
     - go get github.com/ukautz/reflekt
     - go get github.com/gosuri/uilive
 
