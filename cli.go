@@ -42,6 +42,9 @@ type Cli struct {
 	// DefaultCommand contains name of the command which is executed if non is given. Defaults to "list"
 	DefaultCommand string
 
+	// PreCall is executed before the chosen command is called, if defined
+	PreCall func(c *Command) error
+
 	// OnInterrupt, when set with `SetOnInterrupt`, is callback which is executed
 	// if user triggers interrupt (ctrl+c). If an error is returned, then the
 	// cli application will die with a non-zero status and print the error message.
@@ -272,6 +275,12 @@ func (this *Cli) RunWith(args []string) {
 			Die("Parse error: %s", err)
 		}
 
+		if this.PreCall != nil {
+			if err = this.PreCall(c); err != nil {
+				Die(err.Error())
+			}
+		}
+
 		// execute callback & handle result
 		if _, err := this.Call(c); err != nil {
 			if IsCallError(err) {
@@ -371,5 +380,12 @@ func (this *Cli) SetOnInterrupt(cb func() error) *Cli {
 		}()
 	}
 
+	return this
+}
+
+// SetPreCall is builder method and sets a prepare method, which is called
+// before any command is run
+func (this *Cli) SetPreCall(cb func(c *Command) error) *Cli {
+	this.PreCall = cb
 	return this
 }

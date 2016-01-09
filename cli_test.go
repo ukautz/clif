@@ -62,7 +62,7 @@ func TestCliCall(t *testing.T) {
 			})
 		})
 
-		Convey("With pre call", func() {
+		Convey("With pre call on command", func() {
 			val = []string{}
 			cmd.SetPreCall(func(c *Command) {
 				val = append(val, fmt.Sprintf("pre (%s)", c.Name))
@@ -273,6 +273,23 @@ func TestCliRun(t *testing.T) {
 			So(func() {
 				c.RunWith([]string{"errme"})
 			}, ShouldPanicWith, "Failure in execution: I error!")
+		})
+		Convey("Run with cli-wide pre call", func() {
+			name := "NOT"
+			c.SetPreCall(func(c *Command) error {
+				name = c.Name
+				return nil
+			})
+			c.RunWith([]string{"bar"})
+			So(name, ShouldEqual, "bar")
+			Convey("Run with error in cli-wide pre call", func() {
+				c.SetPreCall(func(c *Command) error {
+					return fmt.Errorf("Abort "+ c.Name)
+				})
+				So(func() {
+					c.RunWith([]string{"bar"})
+				}, ShouldPanicWith, `Abort bar`)
+			})
 		})
 	})
 }
