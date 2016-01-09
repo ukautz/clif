@@ -385,6 +385,26 @@ func TestCliHeralds(t *testing.T) {
 	})
 }
 
+func TestCliNamedRegistryParameter(t *testing.T) {
+	Convey("Setting and accessing named parameter in registry", t, func() {
+		app := New("My App", "1.0.0", "Testing app")
+		app.RegisterNamed("foo", "foo")
+		app.RegisterNamed("bar", 123)
+		obj := &testCliInject{}
+		app.RegisterNamed("baz", obj)
+
+		Convey("Accessing named parameters", func() {
+			So(app.Named("foo"), ShouldEqual, "foo")
+			So(app.Named("bar"), ShouldEqual, 123)
+			So(app.Named("baz"), ShouldEqual, obj)
+
+			Convey("Accessing not existing named paraemter", func() {
+				So(app.Named("zoing"), ShouldBeNil)
+			})
+		})
+	})
+}
+
 var testCliSeparateArgs = []struct {
 	args       []string
 	expectName string

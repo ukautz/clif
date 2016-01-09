@@ -226,6 +226,15 @@ func (this *Cli) RegisterNamed(n string, v interface{}) *Cli {
 	return this
 }
 
+// Named returns a named parameter of registry or nil
+func (this *Cli) Named(n string) interface{} {
+	n = fmt.Sprintf("N:%s", n)
+	if v, ok := this.Registry.Container[n]; ok {
+		return v.Interface()
+	}
+	return nil
+}
+
 // Run with OS command line arguments
 func (this *Cli) Run() {
 	this.RunWith(os.Args[1:])
