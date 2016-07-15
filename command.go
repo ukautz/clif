@@ -119,8 +119,7 @@ func (this *Command) Parse(args []string) error {
 	la := len(this.Arguments)
 	for i := 0; i < argc; i++ {
 		a := args[i]
-		//l := len(a)
-		if a[0:1] == "-" {
+		if len(a) > 0 && a[0:1] == "-" {
 			n := strings.TrimLeft(a, "-")
 			v := ""
 			vv := false
