@@ -113,6 +113,10 @@ var testsCommandParse = []struct {
 		err: fmt.Errorf("Parameter \"foo\" invalid: Does not match criteria"),
 	},
 	{
+		in:  []string{""},
+		err: fmt.Errorf("Parameter \"foo\" invalid: Does not match criteria"),
+	},
+	{
 		in:  []string{"afirst"},
 		err: fmt.Errorf("Option \"baz\" is required but missing"),
 	},
