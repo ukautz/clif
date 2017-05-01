@@ -1,12 +1,12 @@
-![status](https://api.travis-ci.org/ukautz/clif.svg?branch=v0)
-[![GoDoc](https://godoc.org/gopkg.in/ukautz/clif.v0?status.svg)](http://godoc.org/gopkg.in/ukautz/clif.v0)
+[![Build Status](https://travis-ci.org/ukautz/clif.svg?branch=master)](https://travis-ci.org/ukautz/clif)
+[![GoDoc](https://godoc.org/gopkg.in/ukautz/clif.v1?status.svg)](http://godoc.org/gopkg.in/ukautz/clif.v1)
 
 ![logo-large](https://cloud.githubusercontent.com/assets/600604/11909504/c6e25a6e-a5e7-11e5-8eaf-f69fa577b744.png)
 
 Command line interface framework
 ================================
 
-Go framework for rapid command line application development. 
+Go framework for rapid command line application development.
 
 Example
 -------
@@ -72,7 +72,7 @@ $ go get gopkg.in/ukautz/clif.v1
 Getting started
 ---------------
 
-One the one side, CLIF's *builder*-like API can be easily used for rapid development of small, single purpose tools. On the other side, CLIF is designed with complex console applications in mind.
+On the one side, CLIF's *builder*-like API can be easily used for rapid development of small, single purpose tools. On the other side, CLIF is designed with complex console applications in mind.
 
 Commands
 --------
@@ -503,7 +503,7 @@ There three built-in color styles (of course, you can extend them or add your ow
 
 #### Table
 
-Table rendering is a neat tool for CLIs. CLIF supports tables out of the box using the `Output` interface. 
+Table rendering is a neat tool for CLIs. CLIF supports tables out of the box using the `Output` interface.
 
 **Features:**
 
@@ -531,7 +531,7 @@ var (
         {
             "<important>Anakin Skywalker<reset>",
             "Old dude",
-            "He is Lukes father! Was kind of stronger in 1-3, but still failed to" + 
+            "He is Lukes father! Was kind of stronger in 1-3, but still failed to" +
                 " kill Jar Jar Binks. Not even tried, though. What's with that?",
         },
 	}
